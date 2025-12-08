@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tasks.css">
+</head>
+<body>
+    <main class="app-container">
+        <header class="app-header">
+            <nav class="top-tabs" role="tablist" aria-label="Main views">
+                <button class="tab active">TASKS</button>
+                <button class="tab">GOALS</button>
+                <button class="tab">REMINDERS</button>
+                <button class="tab">HABITS</button>
+            </nav>
+        </header>
+
+        <div class="layout">
+            <section class="main-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">TASKS</h2>
+                    <div class="panel-actions">
+                        <input class="search" type="search" placeholder="Search tasks">
+                        <button class="btn ghost">ADD</button>
+                    </div>
+                </div>
+
+                <div class="tasks-card">
+                    <div class="tasks-table-head">
+                        <div class="col col-status">STATUS</div>
+                        <div class="col col-task">TASK</div>
+                        <div class="col col-tag">TAG</div>
+                        <div class="col col-date">DATE</div>
+                    </div>
+
+                    <ul class="tasks-list" role="list">
+                        <li class="task-row">
+                            <div class="col col-status">
+                                <span class="status in-progress">IN PROGRESS</span>
+                            </div>
+                            <div class="col col-task">
+                                <div class="task-title">MAKE BQ SITE</div>
+                            </div>
+                            <div class="col col-tag">PROJECTS</div>
+                            <div class="col col-date"><time datetime="2025-06-24">24/6/2025</time></div>
+                        </li>
+
+                        <li class="task-row">
+                            <div class="col col-status">
+                                <span class="status not-started">NOT STARTED</span>
+                            </div>
+                            <div class="col col-task">
+                                <div class="task-title">ASSIGNMENT</div>
+                            </div>
+                            <div class="col col-tag">HOMEWORK</div>
+                            <div class="col col-date"><time datetime="2025-07-06">06/7/2025</time></div>
+                        </li>
+                    </ul>
+
+                    <div class="task-inputs">
+                        <input class="input new-task" placeholder="NEW TASK" aria-label="New task">
+                        <select class="input pick-tags">
+                            <option>PICK TAGS</option>
+                            <option>PROJECTS</option>
+                            <option>HOMEWORK</option>
+                        </select>
+                        <button class="btn calendar">📅</button>
+                        <button class="btn add">ADD</button>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="right-panel">
+                <div class="calendar-card card">
+                    <div class="calendar-header">
+                        <button class="cal-nav">◀</button>
+                        <div class="month">June 2023</div>
+                        <button class="cal-nav">▶</button>
+                    </div>
+                    <div class="calendar-grid">
+                        <!-- simple static grid for visual purposes -->
+                        <div class="day">Su</div>
+                        <div class="day">Mo</div>
+                        <div class="day">Tu</div>
+                        <div class="day">We</div>
+                        <div class="day">Th</div>
+                        <div class="day">Fr</div>
+                        <div class="day">Sa</div>
+                        <!-- days (demo) -->
+                        <div class="date">28</div>
+                        <div class="date">29</div>
+                        <div class="date">30</div>
+                        <div class="date">31</div>
+                        <div class="date today">1</div>
+                        <div class="date">2</div>
+                        <div class="date">3</div>
+                    </div>
+                </div>
+
+                <div class="upcoming card">
+                    <h3 class="card-title">UPCOMING</h3>
+                    <div class="upcoming-item">
+                        <div class="u-meta">TASK &nbsp; TODAY AT 4PM</div>
+                        <div class="u-body">lorem ipsum sit doli34 frfrerke rejneqw</div>
+                    </div>
+                    <div class="upcoming-item">
+                        <div class="u-meta">TASK &nbsp; TODAY AT 4PM</div>
+                        <div class="u-body">lorem ipsum sit doli34 frfrerke rejneqw</div>
+                    </div>
+                    <div class="upcoming-item">
+                        <div class="u-meta">TASK &nbsp; TODAY AT 4PM</div>
+                        <div class="u-body">lorem ipsum sit doli34 frfrerke rejneqw</div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+    <script src="tasks.js"></script>
+ 
+</body>
+</html>
