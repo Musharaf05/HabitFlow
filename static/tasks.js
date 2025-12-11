@@ -1,5 +1,5 @@
 // --- DATA STATE ---
-            let data = {
+            let data1 = {
                 tasks: [
                     {
                         id: 1,
@@ -451,3 +451,19 @@
             // INIT
             initCalendar();
             renderAll();
+            let data = { tasks: [], goals: [], reminders: [] };
+
+fetch("/api/get_data")
+  .then(res => res.json())
+  .then(serverData => {
+    data = serverData;
+    initCalendar();
+    renderAll();
+  });
+function saveToServer() {
+    fetch("/api/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+}
