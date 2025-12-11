@@ -1,5 +1,5 @@
 // --- DATA STATE ---
-            let data1 = {
+            let data = {
                 tasks: [
                     {
                         id: 1,
@@ -451,7 +451,7 @@
             // INIT
             initCalendar();
             renderAll();
-            let data = { tasks: [], goals: [], reminders: [] };
+            let data2 = { tasks: [], goals: [], reminders: [] };
 
 fetch("/api/get_data")
   .then(res => res.json())
