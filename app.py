@@ -10,8 +10,20 @@ def index():
     return render_template("mdindex.html")
 
 
+# ------------------ LOGIN -----------------
+@app.route("/login")
+def login():
+    return render_template()
+
+
+# ----------------- REGISTER ---------------
+@app.route("/register")
+def register():
+    return render_template()
+
+
 # ------------------ GET ALL DATA ------------------
-@app.route("/api/get_data")
+@app.route("/get_data")
 def get_data():
     db = get_db()
     cur = db.cursor()
