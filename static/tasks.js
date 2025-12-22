@@ -1,53 +1,9 @@
 // --- DATA STATE ---
             let data = {
-                tasks: [
-                    {
-                        id: 1,
-                        text: "MAKE BQ SITE",
-                        status: "IN PROGRESS",
-                        tag: "PROJECTS",
-                        date: "2025-06-24",
-                    },
-                    {
-                        id: 2,
-                        text: "ASSIGNMENT",
-                        status: "NOT STARTED",
-                        tag: "HOMEWORK",
-                        date: "2025-07-06",
-                    },
-                ],
-                goals: [
-                    {
-                        id: 1,
-                        text: "MAKE 100K",
-                        priority: "MEDIUM",
-                        date: "2025-06-24",
-                    },
-                    {
-                        id: 2,
-                        text: "GET A JOB",
-                        priority: "HIGH",
-                        date: "2025-08-20",
-                    },
-                ],
-                reminders: [
-                    {
-                        id: 1,
-                        text: "JEFF BOT HOSTING",
-                        date: "2025-06-24",
-                        time: "14:00",
-                        repeat: "BI-WEEKLY",
-                    },
-                    {
-                        id: 2,
-                        text: "BUY APPLES",
-                        date: "2025-08-20",
-                        time: "09:00",
-                        repeat: "NONE",
-                    },
-                ],
+                tasks: [],
+                goals: [],
+                reminders: []
             };
-
             // --- GLOBAL VARIABLES ---
             let filterDate = null; // If null, show 7 days. If set (YYYY-MM-DD), show only that date.
             let calCurrentYear, calCurrentMonth;
@@ -308,42 +264,24 @@
             // --- ADD/EDIT/DELETE LOGIC (Same as previous) ---
             function addItem(type) {
                 if (type === "tasks") {
-                    const text = document
-                        .getElementById("taskInput")
-                        .value.toUpperCase();
+                    const text = document.getElementById("taskInput").value.toUpperCase();
                     const tag = document.getElementById("taskTag").value;
-                    const date =
-                        document.getElementById("taskDate").value ||
-                        new Date().toISOString().split("T")[0];
+                    const date = document.getElementById("taskDate").value;
+
                     if (!text) return;
-                    data.tasks.push({ text, tag, date, status: "NOT STARTED" });
-                    document.getElementById("taskInput").value = "";
-                } else if (type === "goals") {
-                    const text = document
-                        .getElementById("goalInput")
-                        .value.toUpperCase();
-                    const priority =
-                        document.getElementById("goalPriority").value;
-                    const date =
-                        document.getElementById("goalDate").value ||
-                        new Date().toISOString().split("T")[0];
-                    if (!text) return;
-                    data.goals.push({ text, priority, date });
-                    document.getElementById("goalInput").value = "";
-                } else if (type === "reminders") {
-                    const text = document
-                        .getElementById("remInput")
-                        .value.toUpperCase();
-                    const repeat = document.getElementById("remRepeat").value;
-                    const time = document.getElementById("remTime").value;
-                    const date =
-                        document.getElementById("remDate").value ||
-                        new Date().toISOString().split("T")[0];
-                    if (!text) return;
-                    data.reminders.push({ text, repeat, time, date });
-                    document.getElementById("remInput").value = "";
-                }
-                renderAll();
+
+                    fetch("/addTask", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({ text, tag, date })
+                    })
+                    .then(res => res.json())
+                    .then(() => {
+                        document.getElementById("taskInput").value = "";
+                        loadTasksFromDB();  // Refresh list
+                    });
+}
+
             }
 
             function editText(el, type, index, field) {
@@ -451,3 +389,19 @@
             // INIT
             initCalendar();
             renderAll();
+            // ------------------API's-----------------------------------
+            function loadTasksFromDB() {
+                fetch("/getTasks")
+                    .then(res => res.json())
+                    .then(tasks => {
+                        data.tasks = tasks.map(t => ({
+                            id: t.id,
+                            text: t.text,
+                            tag: t.tag,
+                            date: t.date,
+                            status: t.status
+                        }));
+                        renderTasks();
+                        renderUpcoming();
+                    });
+}

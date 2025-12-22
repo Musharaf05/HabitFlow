@@ -37,6 +37,7 @@
 
             /* --- LAYOUT --- */
             .dashboard-container {
+                margin-top: 4rem;
                 display: grid;
                 grid-template-columns: 3fr 1.2fr;
                 gap: 20px;
