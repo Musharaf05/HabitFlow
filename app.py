@@ -1,92 +1,63 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, jsonify, request
 from db import get_db
+import pymysql
 
 app = Flask(__name__)
 
-
-# ------------------ HOME ------------------
+# ---------------------- Index Page ----------------------
 @app.route("/")
 def index():
     return render_template("mdindex.html")
 
-
-# ------------------ LOGIN -----------------
-@app.route("/login")
-def login():
-    return render_template()
-
-
-# ----------------- REGISTER ---------------
-@app.route("/register")
-def register():
-    return render_template()
-
-
-# ------------------ GET ALL DATA ------------------
-@app.route("/get_data")
-def get_data():
+# --------------------- Show Tables ----------------------
+@app.route("/getTables", methods=["GET"])
+def get_tables():
     db = get_db()
     cur = db.cursor()
 
-    # TASKS
-    cur.execute("SELECT id, text, status, tag, date FROM tasks")
-    tasks = [
-        {"id": row[0], "text": row[1], "status": row[2],
-         "tag": row[3], "date": row[4]}
-        for row in cur.fetchall()
-    ]
+    cur.execute("SHOW TABLES;")
+    tables = [row[0] for row in cur.fetchall()]
 
-    # GOALS
-    cur.execute("SELECT id, text, priority, date FROM goals")
-    goals = [
-        {"id": row[0], "text": row[1], "priority": row[2], "date": row[3]}
-        for row in cur.fetchall()
-    ]
+    cur.close()
+    db.close()
 
-    # REMINDERS
-    cur.execute("SELECT id, text, date, time, repeat_option FROM reminders")
-    reminders = [
-        {"id": row[0], "text": row[1], "date": row[2],
-         "time": row[3], "repeat": row[4]}
-        for row in cur.fetchall()
-    ]
+    return jsonify({"tables": tables}), 200
 
-    return jsonify({"tasks": tasks, "goals": goals, "reminders": reminders})
+# ------------------------ GET TASKS ------------------------
+@app.route("/getTasks", methods=["GET"])
+def get_tasks():
+    db = get_db()
+    cur = db.cursor(pymysql.cursors.DictCursor)
 
+    cur.execute("SELECT * FROM tasks")
+    tasks = cur.fetchall()
 
-# ------------------ SAVE CHANGES ------------------
-@app.route("/api/update", methods=["POST"])
-def update():
-    incoming = request.get_json()
+    cur.close()
+    db.close()
+
+    return jsonify(tasks), 200
+
+# ------------------------ ADD TASK ------------------------
+@app.route("/addTask", methods=["POST"])
+def add_task():
+    data = request.get_json()
+
+    text = data.get("text")
+    tag = data.get("tag")
+    date = data.get("date")
+    status = "NOT STARTED"
 
     db = get_db()
     cur = db.cursor()
 
-    # CLEAR OLD DATA
-    cur.execute("DELETE FROM tasks")
-    cur.execute("DELETE FROM goals")
-    cur.execute("DELETE FROM reminders")
-
-    # INSERT TASKS
-    for t in incoming["tasks"]:
-        cur.execute(
-            "INSERT INTO tasks (id, text, status, tag, date) VALUES (%s, %s, %s, %s, %s)",
-            (t["id"], t["text"], t["status"], t["tag"], t["date"])
-        )
-
-    # INSERT GOALS
-    for g in incoming["goals"]:
-        cur.execute(
-            "INSERT INTO goals (id, text, priority, date) VALUES (%s, %s, %s, %s)",
-            (g["id"], g["text"], g["priority"], g["date"])
-        )
-
-    # INSERT REMINDERS
-    for r in incoming["reminders"]:
-        cur.execute(
-            "INSERT INTO reminders (id, text, date, time, repeat_option) VALUES (%s, %s, %s, %s, %s)",
-            (r["id"], r["text"], r["date"], r["time"], r["repeat"])
-        )
-
+    sql = "INSERT INTO tasks (text, tag, date, status) VALUES (%s, %s, %s, %s)"
+    cur.execute(sql, (text, tag, date, status))
     db.commit()
-    return jsonify({"status": "saved"})
+
+    cur.close()
+    db.close()
+
+    return jsonify({"message": "Task added"}), 201
+
+if __name__ == "__main__":
+    app.run(debug=True)

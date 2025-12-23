@@ -1,9 +1,9 @@
-import mysql.connector
+import pymysql
 
 def get_db():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",     
-        password="yourpassword",
+    return pymysql.connect(
+        host="127.0.0.1",
+        user="root",
+        password="m@2005",
         database="habitflow"
     )
