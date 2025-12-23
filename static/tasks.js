@@ -267,22 +267,76 @@
                     const text = document.getElementById("taskInput").value.toUpperCase();
                     const tag = document.getElementById("taskTag").value;
                     const date = document.getElementById("taskDate").value;
-
                     if (!text) return;
 
                     fetch("/addTask", {
                         method: "POST",
-                        headers: {"Content-Type": "application/json"},
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ text, tag, date })
                     })
-                    .then(res => res.json())
                     .then(() => {
                         document.getElementById("taskInput").value = "";
-                        loadTasksFromDB();  // Refresh list
+                        loadTasksFromDB();
                     });
-}
+                }
 
+                if (type === "goals") {
+                    const text = document.getElementById("goalInput").value.toUpperCase();
+                    const priority = document.getElementById("goalPriority").value;
+                    const date = document.getElementById("goalDate").value;
+
+                    fetch("/addGoal", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ text, priority, date })
+                    })
+                    .then(() => {
+                        document.getElementById("goalInput").value = "";
+                        loadGoalsFromDB();
+                    });
+                }
+
+                if (type === "reminders") {
+                    const text = document.getElementById("remInput").value.toUpperCase();
+                    const date = document.getElementById("remDate").value;
+                    const time = document.getElementById("remTime").value;
+                    const repeat = document.getElementById("remRepeat").value;
+
+                    fetch("/addReminder", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ text, date, time, repeat })
+                    })
+                    .then(() => {
+                        document.getElementById("remInput").value = "";
+                        loadRemindersFromDB();
+                    });
+                }
             }
+
+            function deleteItem() {
+                if (!contextTarget) return;
+
+                const type = contextTarget.type;
+                const item = data[type][contextTarget.index];
+                const id = item.id;
+
+                let url = "";
+                if (type === "tasks") url = `/deleteTask/${id}`;
+                if (type === "goals") url = `/deleteGoal/${id}`;
+                if (type === "reminders") url = `/deleteReminder/${id}`;
+
+                fetch(url, { method: "DELETE" })
+                    .then(() => {
+                        if (type === "tasks") loadTasksFromDB();
+                        if (type === "goals") loadGoalsFromDB();
+                        if (type === "reminders") loadRemindersFromDB();
+                    });
+
+                document.getElementById("contextMenu").style.display = "none";
+            }
+
+
 
             function editText(el, type, index, field) {
                 data[type][index][field] = el.innerText;
@@ -361,16 +415,29 @@
             }
 
             function deleteItem() {
-                if (contextTarget) {
-                    data[contextTarget.type].splice(contextTarget.index, 1);
-                    renderAll();
-                }
-                menu.style.display = "none";
+                if (!contextTarget) return;
+
+                const type = contextTarget.type;      // "tasks" | "goals" | "reminders"
+                const index = contextTarget.index;
+                const item = data[type][index];
+                const id = item.id;
+
+                let url = "";
+                if (type === "tasks") url = `/deleteTask/${id}`;
+                if (type === "goals") url = `/deleteGoal/${id}`;
+                if (type === "reminders") url = `/deleteReminder/${id}`;
+
+                fetch(url, { method: "DELETE" })
+                    .then(() => {
+                        if (type === "tasks") loadTasksFromDB();
+                        if (type === "goals") loadGoalsFromDB();
+                        if (type === "reminders") loadRemindersFromDB();
+                    });
+
+                // hide context menu
+                document.getElementById("contextMenu").style.display = "none";
             }
-            document.addEventListener(
-                "click",
-                () => (menu.style.display = "none")
-            );
+
 
             // --- TABS ---
             function switchTab(tabName) {
@@ -385,10 +452,16 @@
                     .getElementById("tab-" + tabName)
                     .classList.add("active");
             }
-
             // INIT
             initCalendar();
-            renderAll();
+            renderCalendar(calCurrentMonth, calCurrentYear);
+
+
+            // Load EVERYTHING from Neon DB when the page starts
+            loadTasksFromDB();
+            loadGoalsFromDB();
+            loadRemindersFromDB();
+
             // ------------------API's-----------------------------------
             function loadTasksFromDB() {
                 fetch("/getTasks")
@@ -404,4 +477,22 @@
                         renderTasks();
                         renderUpcoming();
                     });
-}
+            }
+            function loadGoalsFromDB() {
+                fetch("/getGoals")
+                    .then(res => res.json())
+                    .then(goals => {
+                        data.goals = goals;
+                        renderGoals();
+                        renderUpcoming();
+                    });
+            }
+            function loadRemindersFromDB() {
+                fetch("/getReminders")
+                    .then(res => res.json())
+                    .then(rem => {
+                        data.reminders = rem;
+                        renderReminders();
+                        renderUpcoming();
+                    });
+            }
