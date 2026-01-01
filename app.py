@@ -88,9 +88,29 @@ def add_task():
 
     return jsonify({"message": "Task added"}), 201
 
+@app.route("/updateTask/<int:id>", methods=["PUT"])
+def update_task(id):
+    task = db.session.get(Task, id)
+    if not task:
+        return jsonify({"error": "Task not found"}), 404
+    
+    data = request.get_json()
+    
+    if "text" in data:
+        task.text = data["text"]
+    if "tag" in data:
+        task.tag = data["tag"]
+    if "date" in data:
+        task.date = data["date"]
+    if "status" in data:
+        task.status = data["status"]
+    
+    db.session.commit()
+    return jsonify({"message": "Task updated"})
+
 @app.route("/deleteTask/<int:id>", methods=["DELETE"])
 def delete_task(id):
-    item = Task.query.get(id)
+    item = db.session.get(Task, id)
     if not item:
         return jsonify({"error": "Task not found"}), 404
 
@@ -127,9 +147,27 @@ def add_goal():
 
     return jsonify({"message": "Goal added"}), 201
 
+@app.route("/updateGoal/<int:id>", methods=["PUT"])
+def update_goal(id):
+    goal = db.session.get(Goal, id)
+    if not goal:
+        return jsonify({"error": "Goal not found"}), 404
+    
+    data = request.get_json()
+    
+    if "text" in data:
+        goal.text = data["text"]
+    if "priority" in data:
+        goal.priority = data["priority"]
+    if "date" in data:
+        goal.date = data["date"]
+    
+    db.session.commit()
+    return jsonify({"message": "Goal updated"})
+
 @app.route("/deleteGoal/<int:id>", methods=["DELETE"])
 def delete_goal(id):
-    item = Goal.query.get(id)
+    item = db.session.get(Goal, id)
     if not item:
         return jsonify({"error": "Goal not found"}), 404
 
@@ -168,9 +206,29 @@ def add_reminder():
 
     return jsonify({"message": "Reminder added"}), 201
 
+@app.route("/updateReminder/<int:id>", methods=["PUT"])
+def update_reminder(id):
+    reminder = db.session.get(Reminder, id)
+    if not reminder:
+        return jsonify({"error": "Reminder not found"}), 404
+    
+    data = request.get_json()
+    
+    if "text" in data:
+        reminder.text = data["text"]
+    if "date" in data:
+        reminder.date = data["date"]
+    if "time" in data:
+        reminder.time = data["time"]
+    if "repeat" in data:
+        reminder.repeat = data["repeat"]
+    
+    db.session.commit()
+    return jsonify({"message": "Reminder updated"})
+
 @app.route("/deleteReminder/<int:id>", methods=["DELETE"])
 def delete_reminder(id):
-    item = Reminder.query.get(id)
+    item = db.session.get(Reminder, id)
     if not item:
         return jsonify({"error": "Reminder not found"}), 404
 
