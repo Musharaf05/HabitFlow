@@ -1,3 +1,6 @@
+import uuid
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy import func
 import os
 from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
@@ -20,33 +23,52 @@ db = SQLAlchemy(app)
 #                           MODELS (REQUIRED)
 # -------------------------------------------------------------------
 
+class User(db.Model):
+    __tablename__ = 'users'
+    user_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username = db.Column(db.Text, nullable=False)
+    email = db.Column(db.Text, unique=True, nullable=False)
+    password_hash = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=func.now())
+    accent_color = db.Column(db.Text, default='blue')
+
 class Task(db.Model):
-    __tablename__ = "tasks"
-
-    id = db.Column(db.Integer, primary_key=True)
-    text = db.Column(db.String(255))
-    tag = db.Column(db.String(50))
-    date = db.Column(db.String(20))
-    status = db.Column(db.String(50))
-
+    __tablename__ = 'tasks'
+    task_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.user_id'))
+    task = db.Column(db.Text, nullable=False)
+    tags = db.Column(ARRAY(db.Text))
+    target_date = db.Column(db.Date)
+    note = db.Column(db.Text)
+    status = db.Column(db.Text, default='not started')
+    created_date = db.Column(db.DateTime, server_default=func.now())
 
 class Goal(db.Model):
-    __tablename__ = "goals"
-
-    id = db.Column(db.Integer, primary_key=True)
-    text = db.Column(db.String(255))
-    priority = db.Column(db.String(20))
-    date = db.Column(db.String(20))
-
+    __tablename__ = 'goals'
+    goal_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.user_id'))
+    goal = db.Column(db.Text, nullable=False)
+    priority = db.Column(db.Text)
+    target_date = db.Column(db.Date)
+    created_date = db.Column(db.DateTime, server_default=func.now())
 
 class Reminder(db.Model):
-    __tablename__ = "reminders"
+    __tablename__ = 'reminders'
+    reminder_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.user_id'))
+    reminder = db.Column(db.Text, nullable=False)
+    remind_time = db.Column(db.Time)
+    remind_date = db.Column(db.Date)
+    repeat_frequency = db.Column(db.Text)
+    created_date = db.Column(db.DateTime, server_default=func.now())
 
-    id = db.Column(db.Integer, primary_key=True)
-    text = db.Column(db.String(255))
-    date = db.Column(db.String(20))
-    time = db.Column(db.String(20))
-    repeat = db.Column(db.String(50))
+class Habit(db.Model):
+    __tablename__ = 'habits'
+    habit_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.user_id'))
+    habit = db.Column(db.Text, nullable=False)
+    frequency = db.Column(db.Text)
+    completed_dates = db.Column(ARRAY(db.Date), default=[])
 
 # -------------------------------------------------------------------
 #                           ROUTES
