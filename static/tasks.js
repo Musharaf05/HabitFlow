@@ -390,18 +390,111 @@
             initCalendar();
             renderAll();
             // ------------------API's-----------------------------------
-            function loadTasksFromDB() {
-                fetch("/getTasks")
-                    .then(res => res.json())
-                    .then(tasks => {
-                        data.tasks = tasks.map(t => ({
-                            id: t.id,
-                            text: t.text,
-                            tag: t.tag,
-                            date: t.date,
-                            status: t.status
-                        }));
-                        renderTasks();
-                        renderUpcoming();
-                    });
+            
+            // ------------------Tab Switching---------------------------
+            const API_URL = "http://127.0.0.1:5000"; // Update this if your port is different
+
+                window.onload = () => {
+                    switchTab('tasks'); // Default view
+                    renderCalendar();
+                };
+
+                function switchTab(tabName) {
+                    // 1. Update Button States
+                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    event.currentTarget?.classList.add('active');
+
+                    // 2. Update Content Visibility
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.getElementById(`tab-${tabName}`).classList.add('active');
+
+                    // 3. Load Fresh Data
+                    if (tabName === 'tasks') fetchTasks();
+                    if (tabName === 'goals') fetchGoals();
+                    if (tabName === 'reminders') fetchReminders();
+                }
+
+                // --------------------CRUD-------------------------
+                // FETCH TASKS
+async function fetchTasks() {
+    const res = await fetch(`${API_URL}/tasks`);
+    const tasks = await res.json();
+    const container = document.getElementById('taskListContainer');
+    
+    container.innerHTML = tasks.map(t => `
+        <div class="list-item grid-tasks" oncontextmenu="showContextMenu(event, 'task', ${t.id})">
+            <input type="checkbox" ${t.done ? 'checked' : ''} onclick="toggleStatus(${t.id})">
+            <span>${t.content}</span>
+            <span class="tag">${t.tag || 'PERSONAL'}</span>
+            <span>${t.date || 'NO DATE'}</span>
+        </div>
+    `).join('');
+}
+
+// FETCH GOALS
+async function fetchGoals() {
+    const res = await fetch(`${API_URL}/goals`);
+    const goals = await res.json();
+    const container = document.getElementById('goalListContainer');
+    
+    container.innerHTML = goals.map(g => `
+        <div class="list-item grid-goals" oncontextmenu="showContextMenu(event, 'goal', ${g.id})">
+            <span>${g.title}</span>
+            <span class="priority-${g.priority || 'MEDIUM'}">${g.priority || 'MEDIUM'}</span>
+            <span>${g.date || 'PENDING'}</span>
+        </div>
+    `).join('');
+}
+
+async function addItem(type) {
+    let payload = {};
+    let endpoint = "";
+
+    if (type === 'tasks') {
+        payload = {
+            content: document.getElementById('taskInput').value,
+            tag: document.getElementById('taskTag').value,
+            date: document.getElementById('taskDate').value
+        };
+        endpoint = "/tasks";
+    } else if (type === 'goals') {
+        payload = {
+            title: document.getElementById('goalInput').value,
+            priority: document.getElementById('goalPriority').value,
+            date: document.getElementById('goalDate').value
+        };
+        endpoint = "/goals";
+    }
+
+    if (!payload.content && !payload.title) return alert("Please enter text!");
+
+    await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    // Clear inputs and refresh
+    document.querySelectorAll('input').forEach(i => i.value = '');
+    switchTab(type);
+}
+
+let currentDeleteItem = { type: '', id: null };
+
+function showContextMenu(e, type, id) {
+    e.preventDefault();
+    const menu = document.getElementById('contextMenu');
+    menu.style.display = 'block';
+    menu.style.left = `${e.pageX}px`;
+    menu.style.top = `${e.pageY}px`;
+    currentDeleteItem = { type, id };
+}
+
+// Close menu on click elsewhere
+window.onclick = () => document.getElementById('contextMenu').style.display = 'none';
+
+async function deleteItem() {
+    const { type, id } = currentDeleteItem;
+    await fetch(`${API_URL}/cleanup/${type}/${id}`, { method: 'DELETE' });
+    switchTab(type === 'task' ? 'tasks' : 'goals');
 }
