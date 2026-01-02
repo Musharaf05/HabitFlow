@@ -1,108 +1,244 @@
 import os
-from datetime import datetime
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 
-# --- 1. SETUP & CONFIG ---
 load_dotenv()
 app = Flask(__name__)
 
-# Neon/Postgres URI Fix
+# --- FIX NEON DATABASE URL ---
 uri = os.getenv("DATABASE_URL")
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = uri
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = uri
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db = SQLAlchemy(app)
 
-# --- 2. MODELS (Tables) ---
+# -------------------------------------------------------------------
+#                           MODELS (REQUIRED)
+# -------------------------------------------------------------------
 
 class Task(db.Model):
+    __tablename__ = "tasks"
+
     id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200), nullable=False)
-    is_done = db.Column(db.Boolean, default=False)
+    text = db.Column(db.String(255))
+    tag = db.Column(db.String(50))
+    date = db.Column(db.String(20))
+    status = db.Column(db.String(50))
+
 
 class Goal(db.Model):
+    __tablename__ = "goals"
+
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
-    # One Goal can have multiple Reminders
-    reminders = db.relationship('Reminder', backref='goal', cascade="all, delete-orphan")
+    text = db.Column(db.String(255))
+    priority = db.Column(db.String(20))
+    date = db.Column(db.String(20))
+
 
 class Reminder(db.Model):
+    __tablename__ = "reminders"
+
     id = db.Column(db.Integer, primary_key=True)
-    note = db.Column(db.String(200), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    goal_id = db.Column(db.Integer, db.ForeignKey('goal.id'), nullable=False)
+    text = db.Column(db.String(255))
+    date = db.Column(db.String(20))
+    time = db.Column(db.String(20))
+    repeat = db.Column(db.String(50))
 
-# Create all tables in Neon
-with app.app_context():
-    db.create_all()
+# -------------------------------------------------------------------
+#                           ROUTES
+# -------------------------------------------------------------------
 
-# --- 3. API ROUTES ---
-# ----Home Page--------
 @app.route("/")
-def index():
-        return render_template("mdindex.html")
+def home():
+    return render_template("mdindex.html")
 
-# --- TASKS CRUD ---
-@app.route('/tasks', methods=['GET', 'POST'])
-def manage_tasks():
-    if request.method == 'POST':
-        data = request.get_json()
-        new_task = Task(content=data['content'])
-        db.session.add(new_task)
-        db.session.commit()
-        return jsonify({"msg": "Task Created"}), 201
-    
+
+# ---------------------- TASKS ---------------------------
+
+@app.route("/getTasks")
+def get_tasks():
     tasks = Task.query.all()
-    return jsonify([{"id": t.id, "content": t.content, "done": t.is_done} for t in tasks])
+    return jsonify([
+        {
+            "id": t.id,
+            "text": t.text,
+            "tag": t.tag,
+            "date": t.date,
+            "status": t.status
+        } for t in tasks
+    ])
 
-# --- GOALS & REMINDERS CRUD ---
-@app.route('/goals', methods=['GET', 'POST'])
-def manage_goals():
-    if request.method == 'POST':
-        data = request.get_json()
-        new_goal = Goal(title=data['title'])
-        db.session.add(new_goal)
-        db.session.commit()
-        return jsonify({"msg": "Goal Created", "id": new_goal.id}), 201
-    
-    goals = Goal.query.all()
-    # We return the goal AND its nested reminders
-    result = []
-    for g in goals:
-        result.append({
-            "id": g.id,
-            "title": g.title,
-            "reminders": [{"id": r.id, "note": r.note} for r in g.reminders]
-        })
-    return jsonify(result)
-
-@app.route('/goals/<int:goal_id>/reminders', methods=['POST'])
-def add_reminder(goal_id):
+@app.route("/addTask", methods=["POST"])
+def add_task():
     data = request.get_json()
-    # Ensure the goal exists first
-    goal = Goal.query.get_or_404(goal_id)
-    new_rem = Reminder(note=data['note'], goal_id=goal.id)
-    db.session.add(new_rem)
-    db.session.commit()
-    return jsonify({"msg": "Reminder Added to Goal"}), 201
 
-# --- DELETE ACTIONS ---
-@app.route('/cleanup/<string:type>/<int:id>', methods=['DELETE'])
-def cleanup(type, id):
-    if type == 'task':
-        item = Task.query.get_or_404(id)
-    elif type == 'goal':
-        item = Goal.query.get_or_404(id)
-    else:
-        return jsonify({"error": "Invalid type"}), 400
+    new = Task(
+        text=data["text"],
+        tag=data["tag"],
+        date=data["date"],
+        status="NOT STARTED"
+    )
+    db.session.add(new)
+    db.session.commit()
+
+    return jsonify({"message": "Task added"}), 201
+
+@app.route("/updateTask/<int:id>", methods=["PUT"])
+def update_task(id):
+    task = db.session.get(Task, id)
+    if not task:
+        return jsonify({"error": "Task not found"}), 404
     
+    data = request.get_json()
+    
+    if "text" in data:
+        task.text = data["text"]
+    if "tag" in data:
+        task.tag = data["tag"]
+    if "date" in data:
+        task.date = data["date"]
+    if "status" in data:
+        task.status = data["status"]
+    
+    db.session.commit()
+    return jsonify({"message": "Task updated"})
+
+@app.route("/deleteTask/<int:id>", methods=["DELETE"])
+def delete_task(id):
+    item = db.session.get(Task, id)
+    if not item:
+        return jsonify({"error": "Task not found"}), 404
+
     db.session.delete(item)
     db.session.commit()
-    return jsonify({"msg": f"{type} deleted"})
+    return jsonify({"message": "Task deleted"})
 
-if __name__ == '__main__':
+
+# ---------------------- GOALS ---------------------------
+
+@app.route("/getGoals")
+def get_goals():
+    items = Goal.query.all()
+    return jsonify([
+        {
+            "id": g.id,
+            "text": g.text,
+            "priority": g.priority,
+            "date": g.date
+        } for g in items
+    ])
+
+@app.route("/addGoal", methods=["POST"])
+def add_goal():
+    data = request.get_json()
+
+    new = Goal(
+        text=data["text"],
+        priority=data["priority"],
+        date=data["date"]
+    )
+    db.session.add(new)
+    db.session.commit()
+
+    return jsonify({"message": "Goal added"}), 201
+
+@app.route("/updateGoal/<int:id>", methods=["PUT"])
+def update_goal(id):
+    goal = db.session.get(Goal, id)
+    if not goal:
+        return jsonify({"error": "Goal not found"}), 404
+    
+    data = request.get_json()
+    
+    if "text" in data:
+        goal.text = data["text"]
+    if "priority" in data:
+        goal.priority = data["priority"]
+    if "date" in data:
+        goal.date = data["date"]
+    
+    db.session.commit()
+    return jsonify({"message": "Goal updated"})
+
+@app.route("/deleteGoal/<int:id>", methods=["DELETE"])
+def delete_goal(id):
+    item = db.session.get(Goal, id)
+    if not item:
+        return jsonify({"error": "Goal not found"}), 404
+
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({"message": "Goal deleted"})
+
+
+# ---------------------- REMINDERS ---------------------------
+
+@app.route("/getReminders")
+def get_reminders():
+    items = Reminder.query.all()
+    return jsonify([
+        {
+            "id": r.id,
+            "text": r.text,
+            "date": r.date,
+            "time": r.time,
+            "repeat": r.repeat
+        } for r in items
+    ])
+
+@app.route("/addReminder", methods=["POST"])
+def add_reminder():
+    data = request.get_json()
+
+    new = Reminder(
+        text=data["text"],
+        date=data["date"],
+        time=data["time"],
+        repeat=data["repeat"]
+    )
+    db.session.add(new)
+    db.session.commit()
+
+    return jsonify({"message": "Reminder added"}), 201
+
+@app.route("/updateReminder/<int:id>", methods=["PUT"])
+def update_reminder(id):
+    reminder = db.session.get(Reminder, id)
+    if not reminder:
+        return jsonify({"error": "Reminder not found"}), 404
+    
+    data = request.get_json()
+    
+    if "text" in data:
+        reminder.text = data["text"]
+    if "date" in data:
+        reminder.date = data["date"]
+    if "time" in data:
+        reminder.time = data["time"]
+    if "repeat" in data:
+        reminder.repeat = data["repeat"]
+    
+    db.session.commit()
+    return jsonify({"message": "Reminder updated"})
+
+@app.route("/deleteReminder/<int:id>", methods=["DELETE"])
+def delete_reminder(id):
+    item = db.session.get(Reminder, id)
+    if not item:
+        return jsonify({"error": "Reminder not found"}), 404
+
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({"message": "Reminder deleted"})
+
+
+# -------------------------------------------------------------------
+#                       RUN SERVER
+# -------------------------------------------------------------------
+
+if __name__ == "__main__":
     app.run(debug=True)

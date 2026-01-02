@@ -2,3 +2,5 @@ tasks.html
 __pycache__/
 *.pyc
 *.pyo
+.env
+checklist_16688556.png
