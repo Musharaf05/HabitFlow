@@ -85,9 +85,25 @@ class Habit(db.Model):
 # -------------------------------------------------------------------
 
 def get_current_user_id():
-    """Get current user ID from session. For now, return a default user."""
+    """Get current user ID from session. For now, return None to skip user filtering."""
     # TODO: Implement proper authentication
-    return session.get('user_id', 'default-user-id')
+    # Returning None will make queries work without user_id filtering
+    return session.get('user_id', None)
+
+def ensure_default_user():
+    """Create a default user if it doesn't exist"""
+    default_uuid = "00000000-0000-0000-0000-000000000001"
+    user = db.session.get(User, default_uuid)
+    if not user:
+        user = User(
+            user_id=default_uuid,
+            username="default_user",
+            email="default@example.com",
+            password_hash="not-used-yet"
+        )
+        db.session.add(user)
+        db.session.commit()
+    return default_uuid
 
 # -------------------------------------------------------------------
 #                           ROUTES
@@ -102,7 +118,7 @@ def home():
 
 @app.route("/getTasks")
 def get_tasks():
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     tasks = Task.query.filter_by(user_id=user_id).all()
     return jsonify([
         {
@@ -119,7 +135,7 @@ def get_tasks():
 @app.route("/addTask", methods=["POST"])
 def add_task():
     data = request.get_json()
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     
     # Parse date if provided
     target_date = None
@@ -149,7 +165,7 @@ def add_task():
 
 @app.route("/updateTask/<task_id>", methods=["PUT"])
 def update_task(task_id):
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     task = db.session.get(Task, task_id)
     
     if not task or task.user_id != user_id:
@@ -179,7 +195,7 @@ def update_task(task_id):
 
 @app.route("/deleteTask/<task_id>", methods=["DELETE"])
 def delete_task(task_id):
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     task = db.session.get(Task, task_id)
     
     if not task or task.user_id != user_id:
@@ -194,7 +210,7 @@ def delete_task(task_id):
 
 @app.route("/getGoals")
 def get_goals():
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     goals = Goal.query.filter_by(user_id=user_id).all()
     return jsonify([
         {
@@ -209,7 +225,7 @@ def get_goals():
 @app.route("/addGoal", methods=["POST"])
 def add_goal():
     data = request.get_json()
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     
     target_date = None
     if data.get("date"):
@@ -231,7 +247,7 @@ def add_goal():
 
 @app.route("/updateGoal/<goal_id>", methods=["PUT"])
 def update_goal(goal_id):
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     goal = db.session.get(Goal, goal_id)
     
     if not goal or goal.user_id != user_id:
@@ -254,7 +270,7 @@ def update_goal(goal_id):
 
 @app.route("/deleteGoal/<goal_id>", methods=["DELETE"])
 def delete_goal(goal_id):
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     goal = db.session.get(Goal, goal_id)
     
     if not goal or goal.user_id != user_id:
@@ -269,7 +285,7 @@ def delete_goal(goal_id):
 
 @app.route("/getReminders")
 def get_reminders():
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     reminders = Reminder.query.filter_by(user_id=user_id).all()
     return jsonify([
         {
@@ -285,7 +301,7 @@ def get_reminders():
 @app.route("/addReminder", methods=["POST"])
 def add_reminder():
     data = request.get_json()
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     
     remind_date = None
     if data.get("date"):
@@ -315,7 +331,7 @@ def add_reminder():
 
 @app.route("/updateReminder/<reminder_id>", methods=["PUT"])
 def update_reminder(reminder_id):
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     reminder = db.session.get(Reminder, reminder_id)
     
     if not reminder or reminder.user_id != user_id:
@@ -343,7 +359,7 @@ def update_reminder(reminder_id):
 
 @app.route("/deleteReminder/<reminder_id>", methods=["DELETE"])
 def delete_reminder(reminder_id):
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     reminder = db.session.get(Reminder, reminder_id)
     
     if not reminder or reminder.user_id != user_id:
@@ -358,7 +374,7 @@ def delete_reminder(reminder_id):
 
 @app.route("/getHabits")
 def get_habits():
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     habits = Habit.query.filter_by(user_id=user_id).all()
     return jsonify([
         {
@@ -372,7 +388,7 @@ def get_habits():
 @app.route("/addHabit", methods=["POST"])
 def add_habit():
     data = request.get_json()
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     
     new = Habit(
         user_id=user_id,
@@ -387,7 +403,7 @@ def add_habit():
 
 @app.route("/updateHabit/<habit_id>", methods=["PUT"])
 def update_habit(habit_id):
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     habit = db.session.get(Habit, habit_id)
     
     if not habit or habit.user_id != user_id:
@@ -414,7 +430,7 @@ def update_habit(habit_id):
 @app.route("/toggleHabit/<habit_id>", methods=["POST"])
 def toggle_habit(habit_id):
     """Toggle habit completion for today"""
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     habit = db.session.get(Habit, habit_id)
     
     if not habit or habit.user_id != user_id:
@@ -435,7 +451,7 @@ def toggle_habit(habit_id):
 
 @app.route("/deleteHabit/<habit_id>", methods=["DELETE"])
 def delete_habit(habit_id):
-    user_id = get_current_user_id()
+    user_id = ensure_default_user()  # Use default user
     habit = db.session.get(Habit, habit_id)
     
     if not habit or habit.user_id != user_id:
