@@ -389,3 +389,75 @@
                 background: var(--border-color);
                 border-radius: 3px;
             }
+
+/* -------------------------------Edit & Delete Button------------------------------------- */
+.list-row {
+                display: grid;
+                padding: 15px 0;
+                border-bottom: 1px solid var(--border-color);
+                font-size: 0.95rem;
+                align-items: center;
+                transition: background 0.1s;
+                position: relative;
+            }
+            .list-row:hover {
+                background-color: rgba(255, 255, 255, 0.03);
+            }
+            .list-row:hover .row-actions {
+                opacity: 1;
+            }
+
+            /* --- ROW ACTION ICONS --- */
+            .row-actions {
+                position: absolute;
+                right: 10px;
+                display: flex;
+                gap: 8px;
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+
+            .action-icon {
+                width: 28px;
+                height: 28px;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s;
+                background: var(--bg-input);
+                border: 1px solid var(--border-color);
+            }
+
+            .action-icon:hover {
+                transform: scale(1.1);
+            }
+
+            .action-icon.edit:hover {
+                background: rgba(255, 255, 255, 0.1);
+                border-color: var(--text-primary);
+            }
+
+            .action-icon.delete:hover {
+                background: rgba(239, 68, 68, 0.2);
+                border-color: var(--danger-color);
+            }
+
+            .action-icon svg {
+                width: 14px;
+                height: 14px;
+                stroke: var(--text-secondary);
+                fill: none;
+                stroke-width: 2;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+
+            .action-icon.edit:hover svg {
+                stroke: var(--text-primary);
+            }
+
+            .action-icon.delete:hover svg {
+                stroke: var(--danger-color);
+            }

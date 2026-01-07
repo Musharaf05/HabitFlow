@@ -2,42 +2,35 @@
 let data = {
     tasks: [],
     goals: [],
-    reminders: []
+    reminders: [],
+    habits: []
 };
+
 // --- GLOBAL VARIABLES ---
-let filterDate = null; // If null, show 7 days. If set (YYYY-MM-DD), show only that date.
+let filterDate = null;
 let calCurrentYear, calCurrentMonth;
 
 // --- CONSTANTS ---
 const STATUS_OPTS = [
-    "NOT STARTED",
-    "IN PROGRESS",
-    "COMPLETED",
-    "ON HOLD",
-    "CANCELLED",
+    "not started",
+    "in progress",
+    "completed",
+    "on hold",
+    "cancelled",
 ];
 const TAG_OPTS = ["PROJECTS", "HOMEWORK", "PERSONAL", "WORK"];
-const PRIORITY_OPTS = ["LOW", "MEDIUM", "HIGH"];
+const PRIORITY_OPTS = ["low", "medium", "high"];
 const REPEAT_OPTS = [
     "NONE",
-    "DAILY",
-    "WEEKLY",
-    "BI-WEEKLY",
-    "MONTHLY",
+    "daily",
+    "weekly",
+    "bi-weekly",
+    "monthly",
 ];
+const FREQUENCY_OPTS = ["Daily", "Mon-Fri", "Weekends", "Custom"];
 const MONTH_NAMES = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
 ];
 
 // --- RENDER MAIN LISTS ---
@@ -45,6 +38,7 @@ function renderAll() {
     renderTasks();
     renderGoals();
     renderReminders();
+    renderHabits();
     renderUpcoming();
     renderCalendar(calCurrentMonth, calCurrentYear);
 }
@@ -57,12 +51,23 @@ function renderTasks() {
         div.className = "list-row grid-tasks";
         div.dataset.type = "tasks";
         div.dataset.index = index;
-        div.oncontextmenu = showContextMenu;
+        
+        // Handle tags array - display first tag or empty
+        const displayTag = (item.tags && item.tags.length > 0) ? item.tags[0] : "";
+        
         div.innerHTML = `
-            <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'status', STATUS_OPTS)">${item.status}</span>
+            <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'status', STATUS_OPTS)">${item.status || 'not started'}</span>
             <span class="editable" contenteditable="true" onblur="editText(this, 'tasks', ${index}, 'text')">${item.text}</span>
-            <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'tag', TAG_OPTS)">${item.tag}</span>
-            <span class="editable" onclick="editDate(this, 'tasks', ${index}, 'date')">${item.date}</span>
+            <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'tag', TAG_OPTS)">${displayTag}</span>
+            <span class="editable" onclick="editDate(this, 'tasks', ${index}, 'date')">${item.date || ''}</span>
+            <div class="row-actions">
+                <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </div>
+                <div class="action-icon delete" onclick="deleteItemDirect('tasks', ${index})" title="Delete">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </div>
+            </div>
         `;
         container.appendChild(div);
     });
@@ -76,32 +81,77 @@ function renderGoals() {
         div.className = "list-row grid-goals";
         div.dataset.type = "goals";
         div.dataset.index = index;
-        div.oncontextmenu = showContextMenu;
         div.innerHTML = `
             <span class="editable" contenteditable="true" onblur="editText(this, 'goals', ${index}, 'text')">${item.text}</span>
-            <span class="editable" onclick="editSelect(this, 'goals', ${index}, 'priority', PRIORITY_OPTS)">${item.priority}</span>
-            <span class="editable" onclick="editDate(this, 'goals', ${index}, 'date')">${item.date}</span>
+            <span class="editable" onclick="editSelect(this, 'goals', ${index}, 'priority', PRIORITY_OPTS)">${item.priority || 'medium'}</span>
+            <span class="editable" onclick="editDate(this, 'goals', ${index}, 'date')">${item.date || ''}</span>
+            <div class="row-actions">
+                <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </div>
+                <div class="action-icon delete" onclick="deleteItemDirect('goals', ${index})" title="Delete">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </div>
+            </div>
         `;
         container.appendChild(div);
     });
 }
 
 function renderReminders() {
-    const container = document.getElementById(
-        "reminderListContainer"
-    );
+    const container = document.getElementById("reminderListContainer");
     container.innerHTML = "";
     data.reminders.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-reminders";
         div.dataset.type = "reminders";
         div.dataset.index = index;
-        div.oncontextmenu = showContextMenu;
         div.innerHTML = `
             <span class="editable" contenteditable="true" onblur="editText(this, 'reminders', ${index}, 'text')">${item.text}</span>
-            <span class="editable" onclick="editDate(this, 'reminders', ${index}, 'date')">${item.date}</span>
-            <span class="editable" onclick="editTime(this, 'reminders', ${index}, 'time')">${item.time}</span>
-            <span class="editable" onclick="editSelect(this, 'reminders', ${index}, 'repeat', REPEAT_OPTS)">${item.repeat}</span>
+            <span class="editable" onclick="editDate(this, 'reminders', ${index}, 'date')">${item.date || ''}</span>
+            <span class="editable" onclick="editTime(this, 'reminders', ${index}, 'time')">${item.time || ''}</span>
+            <span class="editable" onclick="editSelect(this, 'reminders', ${index}, 'repeat', REPEAT_OPTS)">${item.repeat || 'NONE'}</span>
+            <div class="row-actions">
+                <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </div>
+                <div class="action-icon delete" onclick="deleteItemDirect('reminders', ${index})" title="Delete">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function renderHabits() {
+    const container = document.getElementById("habitListContainer");
+    if (!container) return; // If habits tab doesn't exist yet
+    
+    container.innerHTML = "";
+    data.habits.forEach((item, index) => {
+        const div = document.createElement("div");
+        div.className = "list-row grid-habits";
+        div.dataset.type = "habits";
+        div.dataset.index = index;
+        
+        const today = new Date().toISOString().split('T')[0];
+        const isCompletedToday = (item.completed_dates || []).includes(today);
+        
+        div.innerHTML = `
+            <span class="editable" contenteditable="true" onblur="editText(this, 'habits', ${index}, 'text')">${item.text}</span>
+            <span class="editable" onclick="editSelect(this, 'habits', ${index}, 'frequency', FREQUENCY_OPTS)">${item.frequency || 'Daily'}</span>
+            <button class="habit-check ${isCompletedToday ? 'completed' : ''}" onclick="toggleHabitToday(${index})">
+                ${isCompletedToday ? '✓' : '○'}
+            </button>
+            <div class="row-actions">
+                <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </div>
+                <div class="action-icon delete" onclick="deleteItemDirect('habits', ${index})" title="Delete">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </div>
+            </div>
         `;
         container.appendChild(div);
     });
@@ -116,14 +166,11 @@ function renderUpcoming() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Logic to determine which items to show
     let filterFn;
     if (filterDate) {
-        // Specific Date Selected
         titleEl.innerText = `EVENTS: ${filterDate}`;
         filterFn = (dateStr) => dateStr === filterDate;
     } else {
-        // Default: Next 7 Days
         titleEl.innerText = "UPCOMING (7 DAYS)";
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 7);
@@ -131,13 +178,11 @@ function renderUpcoming() {
         filterFn = (dateStr) => {
             if (!dateStr) return false;
             const d = new Date(dateStr);
-            // Standardize time for comparison
             d.setHours(0, 0, 0, 0);
             return d >= today && d <= nextWeek;
         };
     }
 
-    // Aggregate Items
     const allItems = [];
     data.tasks.forEach((i) => {
         if (filterFn(i.date)) allItems.push({ ...i, type: "TASK" });
@@ -146,11 +191,9 @@ function renderUpcoming() {
         if (filterFn(i.date)) allItems.push({ ...i, type: "GOAL" });
     });
     data.reminders.forEach((i) => {
-        if (filterFn(i.date))
-            allItems.push({ ...i, type: "REMINDER" });
+        if (filterFn(i.date)) allItems.push({ ...i, type: "REMINDER" });
     });
 
-    // Sort
     allItems.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     allItems.forEach((item) => {
@@ -167,15 +210,14 @@ function renderUpcoming() {
     });
 
     if (allItems.length === 0) {
-        container.innerHTML =
-            '<div style="text-align:center; padding:20px; color:#555;">No events found</div>';
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:#555;">No events found</div>';
     }
 }
 
 function resetFilter() {
     filterDate = null;
     renderUpcoming();
-    renderCalendar(calCurrentMonth, calCurrentYear); // Remove selection visuals
+    renderCalendar(calCurrentMonth, calCurrentYear);
 }
 
 // --- CALENDAR LOGIC ---
@@ -199,9 +241,7 @@ function changeMonth(dir) {
 
 function renderCalendar(month, year) {
     const container = document.getElementById("calDays");
-    document.getElementById(
-        "calMonthYear"
-    ).innerText = `${MONTH_NAMES[month]} ${year}`;
+    document.getElementById("calMonthYear").innerText = `${MONTH_NAMES[month]} ${year}`;
 
     container.innerHTML = "";
 
@@ -209,25 +249,21 @@ function renderCalendar(month, year) {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
 
-    // Empty slots
     for (let i = 0; i < firstDay; i++) {
         const empty = document.createElement("div");
         empty.className = "cal-day empty";
         container.appendChild(empty);
     }
 
-    // Days
     for (let day = 1; day <= daysInMonth; day++) {
         const cell = document.createElement("div");
         cell.className = "cal-day";
         cell.innerText = day;
 
-        // Format YYYY-MM-DD
         const mStr = (month + 1).toString().padStart(2, "0");
         const dStr = day.toString().padStart(2, "0");
         const dateStr = `${year}-${mStr}-${dStr}`;
 
-        // Classes
         if (dateStr === filterDate) {
             cell.classList.add("selected");
         } else if (
@@ -238,13 +274,10 @@ function renderCalendar(month, year) {
             cell.classList.add("today");
         }
 
-        // Click Handler
         cell.onclick = () => {
             filterDate = dateStr;
             renderUpcoming();
-            renderCalendar(month, year); // Re-render to update classes
-
-            // Optional: Also set the date inputs in the active form
+            renderCalendar(month, year);
             setFormDate(dateStr);
         };
 
@@ -253,7 +286,6 @@ function renderCalendar(month, year) {
 }
 
 function setFormDate(dateStr) {
-    // Helper to auto-fill the date input of whatever tab is open
     const activeTab = document.querySelector(".tab-content.active");
     if (activeTab) {
         const input = activeTab.querySelector('input[type="date"]');
@@ -261,7 +293,7 @@ function setFormDate(dateStr) {
     }
 }
 
-// --- ADD ITEM ---
+// --- ADD ITEMS ---
 function addItem(type) {
     if (type === "tasks") {
         const text = document.getElementById("taskInput").value.toUpperCase();
@@ -272,7 +304,7 @@ function addItem(type) {
         fetch("/addTask", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, tag, date })
+            body: JSON.stringify({ text, tags: tag, date })
         })
         .then(() => {
             document.getElementById("taskInput").value = "";
@@ -284,6 +316,7 @@ function addItem(type) {
         const text = document.getElementById("goalInput").value.toUpperCase();
         const priority = document.getElementById("goalPriority").value;
         const date = document.getElementById("goalDate").value;
+        if (!text) return;
 
         fetch("/addGoal", {
             method: "POST",
@@ -301,6 +334,7 @@ function addItem(type) {
         const date = document.getElementById("remDate").value;
         const time = document.getElementById("remTime").value;
         const repeat = document.getElementById("remRepeat").value;
+        if (!text) return;
 
         fetch("/addReminder", {
             method: "POST",
@@ -312,6 +346,22 @@ function addItem(type) {
             loadRemindersFromDB();
         });
     }
+    
+    if (type === "habits") {
+        const text = document.getElementById("habitInput")?.value.toUpperCase();
+        const frequency = document.getElementById("habitFrequency")?.value || "Daily";
+        if (!text) return;
+
+        fetch("/addHabit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, frequency })
+        })
+        .then(() => {
+            document.getElementById("habitInput").value = "";
+            loadHabitsFromDB();
+        });
+    }
 }
 
 // --- UPDATE FUNCTIONS ---
@@ -320,6 +370,12 @@ function updateItemInDB(type, id, field, value) {
     if (type === "tasks") url = `/updateTask/${id}`;
     if (type === "goals") url = `/updateGoal/${id}`;
     if (type === "reminders") url = `/updateReminder/${id}`;
+    if (type === "habits") url = `/updateHabit/${id}`;
+
+    // Handle tag field specially for tasks
+    if (type === "tasks" && field === "tag") {
+        field = "tags";
+    }
 
     fetch(url, {
         method: "PUT",
@@ -342,7 +398,7 @@ function updateItemInDB(type, id, field, value) {
     });
 }
 
-// --- EDIT FUNCTIONS (WITH DB UPDATE) ---
+// --- EDIT FUNCTIONS ---
 function editText(el, type, index, field) {
     const newValue = el.innerText;
     data[type][index][field] = newValue;
@@ -355,19 +411,24 @@ function editText(el, type, index, field) {
 
 function editSelect(el, type, index, field, options) {
     if (el.querySelector("select")) return;
-    const current = data[type][index][field];
+    const current = data[type][index][field] || (type === "tasks" && field === "tag" ? data[type][index].tags?.[0] : "");
     el.innerHTML = "";
     const select = document.createElement("select");
     options.forEach((opt) => {
         const o = document.createElement("option");
         o.value = opt;
         o.innerText = opt;
-        if (opt === current) o.selected = true;
+        if (opt === current || opt.toLowerCase() === current.toLowerCase()) o.selected = true;
         select.appendChild(o);
     });
     const save = () => {
         const newValue = select.value;
-        data[type][index][field] = newValue;
+        
+        if (type === "tasks" && field === "tag") {
+            data[type][index].tags = [newValue];
+        } else {
+            data[type][index][field] = newValue;
+        }
         
         const id = data[type][index].id;
         updateItemInDB(type, id, field, newValue);
@@ -386,7 +447,7 @@ function editDate(el, type, index, field) {
     el.innerHTML = "";
     const input = document.createElement("input");
     input.type = "date";
-    input.value = current;
+    input.value = current || "";
     const save = () => {
         if (input.value) {
             const newValue = input.value;
@@ -409,7 +470,7 @@ function editTime(el, type, index, field) {
     el.innerHTML = "";
     const input = document.createElement("input");
     input.type = "time";
-    input.value = current;
+    input.value = current || "";
     const save = () => {
         if (input.value) {
             const newValue = input.value;
@@ -426,61 +487,72 @@ function editTime(el, type, index, field) {
     input.focus();
 }
 
-// --- DELETE ITEM ---
-function deleteItem() {
-    if (!contextTarget) return;
+// --- HABIT TOGGLE ---
+function toggleHabitToday(index) {
+    const habit = data.habits[index];
+    const id = habit.id;
+    
+    fetch(`/toggleHabit/${id}`, {
+        method: "POST"
+    })
+    .then(response => response.json())
+    .then(() => {
+        loadHabitsFromDB();
+    })
+    .catch(error => {
+        console.error("Error toggling habit:", error);
+    });
+}
 
-    const type = contextTarget.type;
-    const item = data[type][contextTarget.index];
+// --- DELETE FUNCTIONS ---
+function deleteItemDirect(type, index) {
+    if (!confirm("Are you sure you want to delete this item?")) {
+        return;
+    }
+
+    const item = data[type][index];
     const id = item.id;
 
     let url = "";
     if (type === "tasks") url = `/deleteTask/${id}`;
     if (type === "goals") url = `/deleteGoal/${id}`;
     if (type === "reminders") url = `/deleteReminder/${id}`;
+    if (type === "habits") url = `/deleteHabit/${id}`;
 
     fetch(url, { method: "DELETE" })
-        .then(() => {
+        .then(response => {
+            if (!response.ok) {
+                alert("Failed to delete item");
+                return;
+            }
             if (type === "tasks") loadTasksFromDB();
             if (type === "goals") loadGoalsFromDB();
             if (type === "reminders") loadRemindersFromDB();
+            if (type === "habits") loadHabitsFromDB();
+        })
+        .catch(error => {
+            console.error("Error deleting item:", error);
+            alert("Error connecting to server");
         });
-
-    document.getElementById("contextMenu").style.display = "none";
 }
 
-// --- CONTEXT MENU ---
-let contextTarget = null;
-const menu = document.getElementById("contextMenu");
-
-function showContextMenu(e) {
-    e.preventDefault();
-    contextTarget = {
-        type: this.dataset.type,
-        index: parseInt(this.dataset.index),
-    };
-    menu.style.display = "block";
-    menu.style.left = e.pageX + "px";
-    menu.style.top = e.pageY + "px";
+function triggerEdit(row) {
+    const firstEditable = row.querySelector('.editable');
+    if (firstEditable) {
+        if (firstEditable.hasAttribute('contenteditable')) {
+            firstEditable.focus();
+        } else {
+            firstEditable.click();
+        }
+    }
 }
-
-// Hide context menu on click outside
-document.addEventListener("click", () => {
-    menu.style.display = "none";
-});
 
 // --- TABS ---
 function switchTab(tabName) {
-    document
-        .querySelectorAll(".tab-btn")
-        .forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
     event.target.classList.add("active");
-    document
-        .querySelectorAll(".tab-content")
-        .forEach((c) => c.classList.remove("active"));
-    document
-        .getElementById("tab-" + tabName)
-        .classList.add("active");
+    document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"));
+    document.getElementById("tab-" + tabName).classList.add("active");
 }
 
 // --- LOAD FROM DATABASE ---
@@ -491,8 +563,9 @@ function loadTasksFromDB() {
             data.tasks = tasks.map(t => ({
                 id: t.id,
                 text: t.text,
-                tag: t.tag,
+                tags: t.tags || [],
                 date: t.date,
+                note: t.note,
                 status: t.status
             }));
             renderTasks();
@@ -520,11 +593,21 @@ function loadRemindersFromDB() {
         });
 }
 
+function loadHabitsFromDB() {
+    fetch("/getHabits")
+        .then(res => res.json())
+        .then(habits => {
+            data.habits = habits;
+            renderHabits();
+        })
+        .catch(err => console.log("Habits not loaded:", err));
+}
+
 // --- INIT ---
 initCalendar();
 renderCalendar(calCurrentMonth, calCurrentYear);
 
-// Load EVERYTHING from Neon DB when the page starts
 loadTasksFromDB();
 loadGoalsFromDB();
 loadRemindersFromDB();
+loadHabitsFromDB();
