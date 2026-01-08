@@ -12,11 +12,11 @@ let calCurrentYear, calCurrentMonth;
 
 // --- CONSTANTS ---
 const STATUS_OPTS = [
-    "not started",
-    "in progress",
-    "completed",
-    "on hold",
-    "cancelled",
+    "NOT STARTED",
+    "IN PROGRESS",
+    "COMPLETED",
+    "ON HOLD",
+    "CANCELLED",
 ];
 const TAG_OPTS = ["PROJECTS", "HOMEWORK", "PERSONAL", "WORK"];
 const PRIORITY_OPTS = ["low", "medium", "high"];
