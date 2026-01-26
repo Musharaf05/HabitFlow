@@ -292,6 +292,21 @@ def delete_habit(habit_id):
     db.session.commit()
     return jsonify({"success": True})
 
+@app.route("/updateHabit/<habit_id>", methods=["PUT"])
+def update_habit(habit_id):
+    h = db.session.get(Habit, habit_id)
+    if not h:
+        return jsonify({"error": "Not found"}), 404
+
+    data = request.get_json() or {}
+    if "text" in data:
+        h.habit = data["text"]
+    if "frequency" in data:
+        h.frequency = data["frequency"]
+
+    db.session.commit()
+    return jsonify({"success": True})
+
 # ---------------- RUN ----------------
 
 if __name__ == "__main__":

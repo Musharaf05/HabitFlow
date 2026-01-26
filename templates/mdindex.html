@@ -11,105 +11,99 @@
         <div class="dashboard-container">
             <main class="main-panel">
                 <nav class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('tasks')">
-                        TASKS
-                    </button>
-                    <button class="tab-btn" onclick="switchTab('goals')">
-                        GOALS
-                    </button>
-                    <button class="tab-btn" onclick="switchTab('reminders')">
-                        REMINDERS
-                    </button>
+                    <button class="tab-btn active" onclick="switchTab('tasks')">TASKS</button>
+                    <button class="tab-btn" onclick="switchTab('goals')">GOALS</button>
+                    <button class="tab-btn" onclick="switchTab('reminders')">REMINDERS</button>
+                    <button class="tab-btn" onclick="switchTab('habits')">HABITS</button>
                 </nav>
 
+                <!-- TASKS TAB -->
                 <div id="tab-tasks" class="tab-content active">
                     <div class="list-header grid-tasks">
                         <span>STATUS</span>
                         <span>TASK</span>
                         <span>TAG</span>
                         <span>DATE</span>
+                        <span>ACTIONS</span>
                     </div>
                     <div class="list-container" id="taskListContainer"></div>
                     <div class="input-area">
-                        <input
-                            type="text"
-                            id="taskInput"
-                            class="input-text"
-                            placeholder="NEW TASK"
-                        />
+                        <input type="text" id="taskInput" class="input-text" placeholder="NEW TASK" />
                         <select id="taskTag" class="input-sm">
                             <option value="PROJECTS">PROJECTS</option>
                             <option value="HOMEWORK">HOMEWORK</option>
                             <option value="PERSONAL">PERSONAL</option>
+                            <option value="WORK">WORK</option>
                         </select>
                         <input type="date" id="taskDate" class="input-sm" />
-                        <button class="add-btn" onclick="addItem('tasks')">
-                            ADD
-                        </button>
+                        <button class="add-btn" onclick="addItem('tasks')">ADD</button>
                     </div>
                 </div>
 
+                <!-- GOALS TAB -->
                 <div id="tab-goals" class="tab-content">
                     <div class="list-header grid-goals">
                         <span>GOAL</span>
                         <span>PRIORITY</span>
                         <span>DATE</span>
+                        <span>ACTIONS</span>
                     </div>
                     <div class="list-container" id="goalListContainer"></div>
                     <div class="input-area">
-                        <input
-                            type="text"
-                            id="goalInput"
-                            class="input-text"
-                            placeholder="NEW GOAL"
-                        />
+                        <input type="text" id="goalInput" class="input-text" placeholder="NEW GOAL" />
                         <select id="goalPriority" class="input-sm">
-                            <option value="LOW">LOW</option>
-                            <option value="MEDIUM" selected>MEDIUM</option>
-                            <option value="HIGH">HIGH</option>
+                            <option value="low">LOW</option>
+                            <option value="medium" selected>MEDIUM</option>
+                            <option value="high">HIGH</option>
                         </select>
                         <input type="date" id="goalDate" class="input-sm" />
-                        <button class="add-btn" onclick="addItem('goals')">
-                            ADD
-                        </button>
+                        <button class="add-btn" onclick="addItem('goals')">ADD</button>
                     </div>
                 </div>
 
+                <!-- REMINDERS TAB -->
                 <div id="tab-reminders" class="tab-content">
                     <div class="list-header grid-reminders">
                         <span>REMINDER</span>
                         <span>DATE</span>
                         <span>TIME</span>
                         <span>REPEAT</span>
+                        <span>ACTIONS</span>
                     </div>
-                    <div
-                        class="list-container"
-                        id="reminderListContainer"
-                    ></div>
+                    <div class="list-container" id="reminderListContainer"></div>
                     <div class="input-area">
-                        <input
-                            type="text"
-                            id="remInput"
-                            class="input-text"
-                            placeholder="NEW REMINDER"
-                        />
+                        <input type="text" id="remInput" class="input-text" placeholder="NEW REMINDER" />
                         <select id="remRepeat" class="input-sm">
                             <option value="NONE">NO REPEAT</option>
-                            <option value="DAILY">DAILY</option>
-                            <option value="WEEKLY">WEEKLY</option>
-                            <option value="BI-WEEKLY">BI-WEEKLY</option>
-                            <option value="MONTHLY">MONTHLY</option>
+                            <option value="daily">DAILY</option>
+                            <option value="weekly">WEEKLY</option>
+                            <option value="bi-weekly">BI-WEEKLY</option>
+                            <option value="monthly">MONTHLY</option>
                         </select>
-                        <input
-                            type="time"
-                            id="remTime"
-                            class="input-xs"
-                            value="09:00"
-                        />
+                        <input type="time" id="remTime" class="input-xs" value="09:00" />
                         <input type="date" id="remDate" class="input-sm" />
-                        <button class="add-btn" onclick="addItem('reminders')">
-                            ADD
-                        </button>
+                        <button class="add-btn" onclick="addItem('reminders')">ADD</button>
+                    </div>
+                </div>
+
+                <!-- HABITS TAB -->
+                <div id="tab-habits" class="tab-content">
+                    <div class="list-header grid-habits">
+                        <span>HABIT</span>
+                        <span>FREQUENCY</span>
+                        <span>TODAY</span>
+                        <span>ACTIONS</span>
+                    </div>
+                    <div class="list-container" id="habitListContainer"></div>
+                    <div class="input-area">
+                        <input type="text" id="habitInput" class="input-text" placeholder="NEW HABIT" />
+                        <select id="habitFrequency" class="input-sm">
+                            <option value="Daily" selected>DAILY</option>
+                            <option value="Mon-Fri">MON-FRI</option>
+                            <option value="Weekends">WEEKENDS</option>
+                            <option value="Custom">CUSTOM</option>
+                        </select>
+                        <button class="add-btn" onclick="addItem('habits')">ADD</button>
                     </div>
                 </div>
             </main>
@@ -117,13 +111,9 @@
             <aside class="sidebar">
                 <div class="calendar-widget">
                     <div class="cal-header">
-                        <button class="cal-nav-btn" onclick="changeMonth(-1)">
-                            &lt;
-                        </button>
+                        <button class="cal-nav-btn" onclick="changeMonth(-1)">&lt;</button>
                         <span id="calMonthYear">Loading...</span>
-                        <button class="cal-nav-btn" onclick="changeMonth(1)">
-                            &gt;
-                        </button>
+                        <button class="cal-nav-btn" onclick="changeMonth(1)">&gt;</button>
                     </div>
                     <div class="cal-grid">
                         <div class="cal-day-name">Su</div>
@@ -139,12 +129,8 @@
 
                 <div class="upcoming-widget">
                     <div class="section-header">
-                        <span class="section-title" id="upcomingTitle"
-                            >UPCOMING (7 DAYS)</span
-                        >
-                        <button class="reset-btn" onclick="resetFilter()">
-                            SHOW ALL
-                        </button>
+                        <span class="section-title" id="upcomingTitle">UPCOMING (7 DAYS)</span>
+                        <button class="reset-btn" onclick="resetFilter()">SHOW ALL</button>
                     </div>
                     <div class="upcoming-list" id="upcomingList"></div>
                 </div>

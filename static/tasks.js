@@ -6,34 +6,18 @@ let data = {
     habits: []
 };
 
-// --- GLOBAL VARIABLES ---
 let filterDate = null;
 let calCurrentYear, calCurrentMonth;
 
 // --- CONSTANTS ---
-const STATUS_OPTS = [
-    "NOT STARTED",
-    "IN PROGRESS",
-    "COMPLETED",
-    "ON HOLD",
-    "CANCELLED",
-];
+const STATUS_OPTS = ["not started", "in progress", "completed", "on hold", "cancelled"];
 const TAG_OPTS = ["PROJECTS", "HOMEWORK", "PERSONAL", "WORK"];
 const PRIORITY_OPTS = ["low", "medium", "high"];
-const REPEAT_OPTS = [
-    "NONE",
-    "daily",
-    "weekly",
-    "bi-weekly",
-    "monthly",
-];
+const REPEAT_OPTS = ["NONE", "daily", "weekly", "bi-weekly", "monthly"];
 const FREQUENCY_OPTS = ["Daily", "Mon-Fri", "Weekends", "Custom"];
-const MONTH_NAMES = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-];
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-// --- RENDER MAIN LISTS ---
+// --- RENDER ---
 function renderAll() {
     renderTasks();
     renderGoals();
@@ -49,16 +33,12 @@ function renderTasks() {
     data.tasks.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-tasks";
-        div.dataset.type = "tasks";
-        div.dataset.index = index;
-        
-        // Handle tags array - display first tag or empty
         const displayTag = (item.tags && item.tags.length > 0) ? item.tags[0] : "";
         
         div.innerHTML = `
             <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'status', STATUS_OPTS)">${item.status || 'not started'}</span>
             <span class="editable" contenteditable="true" onblur="editText(this, 'tasks', ${index}, 'text')">${item.text}</span>
-            <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'tag', TAG_OPTS)">${displayTag}</span>
+            <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'tags', TAG_OPTS)">${displayTag}</span>
             <span class="editable" onclick="editDate(this, 'tasks', ${index}, 'date')">${item.date || ''}</span>
             <div class="row-actions">
                 <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
@@ -79,8 +59,6 @@ function renderGoals() {
     data.goals.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-goals";
-        div.dataset.type = "goals";
-        div.dataset.index = index;
         div.innerHTML = `
             <span class="editable" contenteditable="true" onblur="editText(this, 'goals', ${index}, 'text')">${item.text}</span>
             <span class="editable" onclick="editSelect(this, 'goals', ${index}, 'priority', PRIORITY_OPTS)">${item.priority || 'medium'}</span>
@@ -104,8 +82,6 @@ function renderReminders() {
     data.reminders.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-reminders";
-        div.dataset.type = "reminders";
-        div.dataset.index = index;
         div.innerHTML = `
             <span class="editable" contenteditable="true" onblur="editText(this, 'reminders', ${index}, 'text')">${item.text}</span>
             <span class="editable" onclick="editDate(this, 'reminders', ${index}, 'date')">${item.date || ''}</span>
@@ -126,14 +102,12 @@ function renderReminders() {
 
 function renderHabits() {
     const container = document.getElementById("habitListContainer");
-    if (!container) return; // If habits tab doesn't exist yet
+    if (!container) return;
     
     container.innerHTML = "";
     data.habits.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-habits";
-        div.dataset.type = "habits";
-        div.dataset.index = index;
         
         const today = new Date().toISOString().split('T')[0];
         const isCompletedToday = (item.completed_dates || []).includes(today);
@@ -157,7 +131,6 @@ function renderHabits() {
     });
 }
 
-// --- RENDER UPCOMING (SMART FILTER) ---
 function renderUpcoming() {
     const container = document.getElementById("upcomingList");
     const titleEl = document.getElementById("upcomingTitle");
@@ -174,7 +147,6 @@ function renderUpcoming() {
         titleEl.innerText = "UPCOMING (7 DAYS)";
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 7);
-
         filterFn = (dateStr) => {
             if (!dateStr) return false;
             const d = new Date(dateStr);
@@ -184,28 +156,16 @@ function renderUpcoming() {
     }
 
     const allItems = [];
-    data.tasks.forEach((i) => {
-        if (filterFn(i.date)) allItems.push({ ...i, type: "TASK" });
-    });
-    data.goals.forEach((i) => {
-        if (filterFn(i.date)) allItems.push({ ...i, type: "GOAL" });
-    });
-    data.reminders.forEach((i) => {
-        if (filterFn(i.date)) allItems.push({ ...i, type: "REMINDER" });
-    });
+    data.tasks.forEach((i) => { if (filterFn(i.date)) allItems.push({ ...i, type: "TASK" }); });
+    data.goals.forEach((i) => { if (filterFn(i.date)) allItems.push({ ...i, type: "GOAL" }); });
+    data.reminders.forEach((i) => { if (filterFn(i.date)) allItems.push({ ...i, type: "REMINDER" }); });
 
     allItems.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     allItems.forEach((item) => {
         const div = document.createElement("div");
         div.className = "upcoming-item";
-        div.innerHTML = `
-            <div class="up-meta">
-                <span>${item.type}</span>
-                <span>${item.date}</span>
-            </div>
-            <div style="font-weight:bold;">${item.text}</div>
-        `;
+        div.innerHTML = `<div class="up-meta"><span>${item.type}</span><span>${item.date}</span></div><div style="font-weight:bold;">${item.text}</div>`;
         container.appendChild(div);
     });
 
@@ -220,7 +180,7 @@ function resetFilter() {
     renderCalendar(calCurrentMonth, calCurrentYear);
 }
 
-// --- CALENDAR LOGIC ---
+// --- CALENDAR ---
 function initCalendar() {
     const now = new Date();
     calCurrentYear = now.getFullYear();
@@ -229,20 +189,14 @@ function initCalendar() {
 
 function changeMonth(dir) {
     calCurrentMonth += dir;
-    if (calCurrentMonth < 0) {
-        calCurrentMonth = 11;
-        calCurrentYear--;
-    } else if (calCurrentMonth > 11) {
-        calCurrentMonth = 0;
-        calCurrentYear++;
-    }
+    if (calCurrentMonth < 0) { calCurrentMonth = 11; calCurrentYear--; }
+    else if (calCurrentMonth > 11) { calCurrentMonth = 0; calCurrentYear++; }
     renderCalendar(calCurrentMonth, calCurrentYear);
 }
 
 function renderCalendar(month, year) {
     const container = document.getElementById("calDays");
     document.getElementById("calMonthYear").innerText = `${MONTH_NAMES[month]} ${year}`;
-
     container.innerHTML = "";
 
     const firstDay = new Date(year, month, 1).getDay();
@@ -264,15 +218,8 @@ function renderCalendar(month, year) {
         const dStr = day.toString().padStart(2, "0");
         const dateStr = `${year}-${mStr}-${dStr}`;
 
-        if (dateStr === filterDate) {
-            cell.classList.add("selected");
-        } else if (
-            today.getDate() === day &&
-            today.getMonth() === month &&
-            today.getFullYear() === year
-        ) {
-            cell.classList.add("today");
-        }
+        if (dateStr === filterDate) cell.classList.add("selected");
+        else if (today.getDate() === day && today.getMonth() === month && today.getFullYear() === year) cell.classList.add("today");
 
         cell.onclick = () => {
             filterDate = dateStr;
@@ -293,7 +240,7 @@ function setFormDate(dateStr) {
     }
 }
 
-// --- ADD ITEMS ---
+// --- ADD ---
 function addItem(type) {
     if (type === "tasks") {
         const text = document.getElementById("taskInput").value.toUpperCase();
@@ -305,9 +252,9 @@ function addItem(type) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text, tags: tag, date })
-        })
-        .then(() => {
+        }).then(() => {
             document.getElementById("taskInput").value = "";
+            document.getElementById("taskDate").value = "";
             loadTasksFromDB();
         });
     }
@@ -322,9 +269,9 @@ function addItem(type) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text, priority, date })
-        })
-        .then(() => {
+        }).then(() => {
             document.getElementById("goalInput").value = "";
+            document.getElementById("goalDate").value = "";
             loadGoalsFromDB();
         });
     }
@@ -340,9 +287,9 @@ function addItem(type) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text, date, time, repeat })
-        })
-        .then(() => {
+        }).then(() => {
             document.getElementById("remInput").value = "";
+            document.getElementById("remDate").value = "";
             loadRemindersFromDB();
         });
     }
@@ -356,26 +303,20 @@ function addItem(type) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text, frequency })
-        })
-        .then(() => {
+        }).then(() => {
             document.getElementById("habitInput").value = "";
             loadHabitsFromDB();
         });
     }
 }
 
-// --- UPDATE FUNCTIONS ---
+// --- UPDATE ---
 function updateItemInDB(type, id, field, value) {
     let url = "";
     if (type === "tasks") url = `/updateTask/${id}`;
     if (type === "goals") url = `/updateGoal/${id}`;
     if (type === "reminders") url = `/updateReminder/${id}`;
     if (type === "habits") url = `/updateHabit/${id}`;
-
-    // Handle tag field specially for tasks
-    if (type === "tasks" && field === "tag") {
-        field = "tags";
-    }
 
     fetch(url, {
         method: "PUT",
@@ -385,33 +326,34 @@ function updateItemInDB(type, id, field, value) {
     .then(response => {
         if (!response.ok) {
             console.error("Update failed");
-            alert("Failed to update item. Please try again.");
+            alert("Failed to update item");
         }
         return response.json();
     })
-    .then(data => {
-        console.log("Update successful:", data);
-    })
+    .then(data => console.log("Update successful:", data))
     .catch(error => {
-        console.error("Error updating item:", error);
-        alert("Error connecting to server. Please check your connection.");
+        console.error("Error updating:", error);
+        alert("Error connecting to server");
     });
 }
 
-// --- EDIT FUNCTIONS ---
+// --- EDIT ---
 function editText(el, type, index, field) {
     const newValue = el.innerText;
     data[type][index][field] = newValue;
-    
     const id = data[type][index].id;
     updateItemInDB(type, id, field, newValue);
-    
     renderUpcoming();
 }
 
 function editSelect(el, type, index, field, options) {
     if (el.querySelector("select")) return;
-    const current = data[type][index][field] || (type === "tasks" && field === "tag" ? data[type][index].tags?.[0] : "");
+    
+    let current = data[type][index][field];
+    if (field === "tags" && Array.isArray(current)) {
+        current = current.length > 0 ? current[0] : "";
+    }
+    
     el.innerHTML = "";
     const select = document.createElement("select");
     options.forEach((opt) => {
@@ -421,20 +363,19 @@ function editSelect(el, type, index, field, options) {
         if (opt === current || opt.toLowerCase() === current.toLowerCase()) o.selected = true;
         select.appendChild(o);
     });
+    
     const save = () => {
         const newValue = select.value;
-        
-        if (type === "tasks" && field === "tag") {
-            data[type][index].tags = [newValue];
+        if (field === "tags") {
+            data[type][index][field] = [newValue];
         } else {
             data[type][index][field] = newValue;
         }
-        
         const id = data[type][index].id;
         updateItemInDB(type, id, field, newValue);
-        
         renderAll();
     };
+    
     select.addEventListener("blur", save);
     select.addEventListener("change", save);
     el.appendChild(select);
@@ -452,9 +393,8 @@ function editDate(el, type, index, field) {
         if (input.value) {
             const newValue = input.value;
             data[type][index][field] = newValue;
-            
             const id = data[type][index].id;
-            updateItemInDB(type, id, field, newValue);
+            updateItemInDB(type, id, "date", newValue);
         }
         renderAll();
     };
@@ -475,9 +415,8 @@ function editTime(el, type, index, field) {
         if (input.value) {
             const newValue = input.value;
             data[type][index][field] = newValue;
-            
             const id = data[type][index].id;
-            updateItemInDB(type, id, field, newValue);
+            updateItemInDB(type, id, "time", newValue);
         }
         renderAll();
     };
@@ -492,23 +431,32 @@ function toggleHabitToday(index) {
     const habit = data.habits[index];
     const id = habit.id;
     
-    fetch(`/toggleHabit/${id}`, {
-        method: "POST"
+    fetch(`/toggleHabit/${id}`, { method: "POST" })
+        .then(response => response.json())
+        .then(() => loadHabitsFromDB())
+        .catch(error => console.error("Error toggling habit:", error));
+}
+
+// --- UPDATE HABIT ---
+function updateHabit(id, field, value) {
+    fetch(`/updateHabit/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value })
     })
-    .then(response => response.json())
-    .then(() => {
-        loadHabitsFromDB();
+    .then(response => {
+        if (!response.ok) alert("Failed to update habit");
+        return response.json();
     })
     .catch(error => {
-        console.error("Error toggling habit:", error);
+        console.error("Error updating habit:", error);
+        alert("Error connecting to server");
     });
 }
 
-// --- DELETE FUNCTIONS ---
+// --- DELETE ---
 function deleteItemDirect(type, index) {
-    if (!confirm("Are you sure you want to delete this item?")) {
-        return;
-    }
+    if (!confirm("Are you sure you want to delete this item?")) return;
 
     const item = data[type][index];
     const id = item.id;
@@ -531,7 +479,7 @@ function deleteItemDirect(type, index) {
             if (type === "habits") loadHabitsFromDB();
         })
         .catch(error => {
-            console.error("Error deleting item:", error);
+            console.error("Error deleting:", error);
             alert("Error connecting to server");
         });
 }
@@ -555,22 +503,16 @@ function switchTab(tabName) {
     document.getElementById("tab-" + tabName).classList.add("active");
 }
 
-// --- LOAD FROM DATABASE ---
+// --- LOAD ---
 function loadTasksFromDB() {
     fetch("/getTasks")
         .then(res => res.json())
         .then(tasks => {
-            data.tasks = tasks.map(t => ({
-                id: t.id,
-                text: t.text,
-                tags: t.tags || [],
-                date: t.date,
-                note: t.note,
-                status: t.status
-            }));
+            data.tasks = tasks.map(t => ({ id: t.id, text: t.text, tags: t.tags || [], date: t.date, note: t.note, status: t.status }));
             renderTasks();
             renderUpcoming();
-        });
+        })
+        .catch(err => console.error("Error loading tasks:", err));
 }
 
 function loadGoalsFromDB() {
@@ -580,7 +522,8 @@ function loadGoalsFromDB() {
             data.goals = goals;
             renderGoals();
             renderUpcoming();
-        });
+        })
+        .catch(err => console.error("Error loading goals:", err));
 }
 
 function loadRemindersFromDB() {
@@ -590,7 +533,8 @@ function loadRemindersFromDB() {
             data.reminders = rem;
             renderReminders();
             renderUpcoming();
-        });
+        })
+        .catch(err => console.error("Error loading reminders:", err));
 }
 
 function loadHabitsFromDB() {
@@ -606,7 +550,6 @@ function loadHabitsFromDB() {
 // --- INIT ---
 initCalendar();
 renderCalendar(calCurrentMonth, calCurrentYear);
-
 loadTasksFromDB();
 loadGoalsFromDB();
 loadRemindersFromDB();
