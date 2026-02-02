@@ -12,8 +12,8 @@ let calCurrentYear, calCurrentMonth;
 // --- CONSTANTS ---
 const STATUS_OPTS = ["NOT STARTED", "IN PROGRESS", "COMPLETED", "ON HOLD", "CANCELLED"];
 const TAG_OPTS = ["PROJECTS", "HOMEWORK", "PERSONAL", "WORK"];
-const PRIORITY_OPTS = ["low", "medium", "high"];
-const REPEAT_OPTS = ["NONE", "daily", "weekly", "bi-weekly", "monthly"];
+const PRIORITY_OPTS = ["LOW", "MEDIUM", "HIGH"];
+const REPEAT_OPTS = ["NONE", "DAILY", "WEEKLY", "BI-WEEKLY", "MONTHLY"];
 const FREQUENCY_OPTS = ["Daily", "Mon-Fri", "Weekends", "Custom"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
