@@ -8,6 +8,11 @@
         <link rel="icon" href="{{ url_for('static', filename='checklist_16688556.png') }}" type="image/png">
     </head>
     <body>
+        <div class="navbar">
+            <span class="welcome-text">Welcome, {{ username }}!</span>
+            <a href="/logout" class="logout-btn">LOGOUT</a>
+        </div>
+        
         <div class="dashboard-container">
             <main class="main-panel">
                 <nav class="tabs">
@@ -52,9 +57,9 @@
                     <div class="input-area">
                         <input type="text" id="goalInput" class="input-text" placeholder="NEW GOAL" />
                         <select id="goalPriority" class="input-sm">
-                            <option value="LOW">LOW</option>
-                            <option value="MEDIUM" selected>MEDIUM</option>
-                            <option value="HIGH">HIGH</option>
+                            <option value="low">LOW</option>
+                            <option value="medium" selected>MEDIUM</option>
+                            <option value="high">HIGH</option>
                         </select>
                         <input type="date" id="goalDate" class="input-sm" />
                         <button class="add-btn" onclick="addItem('goals')">ADD</button>
@@ -75,10 +80,10 @@
                         <input type="text" id="remInput" class="input-text" placeholder="NEW REMINDER" />
                         <select id="remRepeat" class="input-sm">
                             <option value="NONE">NO REPEAT</option>
-                            <option value="DAILY">DAILY</option>
-                            <option value="WEEKLY">WEEKLY</option>
-                            <option value="BI-WEEKLY">BI-WEEKLY</option>
-                            <option value="MONTHLY">MONTHLY</option>
+                            <option value="daily">DAILY</option>
+                            <option value="weekly">WEEKLY</option>
+                            <option value="bi-weekly">BI-WEEKLY</option>
+                            <option value="monthly">MONTHLY</option>
                         </select>
                         <input type="time" id="remTime" class="input-xs" value="09:00" />
                         <input type="date" id="remDate" class="input-sm" />
