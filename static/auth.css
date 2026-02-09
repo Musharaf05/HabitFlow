@@ -133,16 +133,6 @@ small {
     cursor: pointer;
 }
 
-.link {
-    color: #ffffff;
-    text-decoration: none;
-    transition: opacity 0.2s;
-}
-
-.link:hover {
-    opacity: 0.7;
-}
-
 /* Button */
 .auth-btn {
     background-color: #ffffff;

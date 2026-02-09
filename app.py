@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from sqlalchemy.dialects.postgresql import ARRAY
 
@@ -37,7 +37,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.Text, nullable=False)
     email = db.Column(db.Text, unique=True, nullable=False)
     password_hash = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     accent_color = db.Column(db.Text, default='blue')
     
     def get_id(self):
@@ -426,7 +426,7 @@ def toggle_habit(habit_id):
     if not h or h.user_id != current_user.user_id:
         return jsonify({"error": "Not found"}), 404
 
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     dates = list(h.completed_dates or [])
 
     if today in dates:

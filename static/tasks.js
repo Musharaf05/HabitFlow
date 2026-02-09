@@ -6,6 +6,14 @@ let data = {
     habits: []
 };
 
+// --- LOADING STATE ---
+let isLoading = {
+    tasks: true,
+    goals: true,
+    reminders: true,
+    habits: true
+};
+
 let filterDate = null;
 let calCurrentYear, calCurrentMonth;
 
@@ -16,6 +24,28 @@ const PRIORITY_OPTS = ["LOW", "MEDIUM", "HIGH"];
 const REPEAT_OPTS = ["NONE", "DAILY", "WEEKLY", "BI-WEEKLY", "MONTHLY"];
 const FREQUENCY_OPTS = ["Daily", "Mon-Fri", "Weekends", "Custom"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+// --- COLOR CONSTANTS ---
+const STATUS_COLORS = {
+    "NOT STARTED": "#6b7280",
+    "IN PROGRESS": "#3b82f6",
+    "COMPLETED": "#22c55e",
+    "ON HOLD": "#f59e0b",
+    "CANCELLED": "#ef4444"
+};
+
+const PRIORITY_COLORS = {
+    "LOW": "#22c55e",
+    "MEDIUM": "#f59e0b",
+    "HIGH": "#ef4444"
+};
+
+// --- DATE FORMATTING ---
+function formatDateDisplay(dateStr) {
+    if (!dateStr) return "";
+    const [year, month, day] = dateStr.split("-");
+    return `${day}/${month}/${year}`;
+}
 
 // --- RENDER ---
 function renderAll() {
@@ -30,16 +60,29 @@ function renderAll() {
 function renderTasks() {
     const container = document.getElementById("taskListContainer");
     container.innerHTML = "";
+    
+    if (isLoading.tasks) {
+        container.innerHTML = '<div class="loading-container"><div class="loader"></div><p>Loading tasks...</p></div>';
+        return;
+    }
+    
+    if (data.tasks.length === 0) {
+        container.innerHTML = '<div class="empty-state">No tasks added yet. Create your first task below!</div>';
+        return;
+    }
+    
     data.tasks.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-tasks";
         const displayTag = (item.tags && item.tags.length > 0) ? item.tags[0] : "";
+        const statusUpper = (item.status || 'not started').toUpperCase();
+        const statusColor = STATUS_COLORS[statusUpper] || "#6b7280";
         
         div.innerHTML = `
-            <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'status', STATUS_OPTS)">${item.status || 'not started'}</span>
+            <span class="editable" style="color: ${statusColor};" onclick="editSelect(this, 'tasks', ${index}, 'status', STATUS_OPTS)">${statusUpper}</span>
             <span class="editable" contenteditable="true" onblur="editText(this, 'tasks', ${index}, 'text')">${item.text}</span>
             <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'tags', TAG_OPTS)">${displayTag}</span>
-            <span class="editable" onclick="editDate(this, 'tasks', ${index}, 'date')">${item.date || ''}</span>
+            <span class="editable" onclick="editDate(this, 'tasks', ${index}, 'date')">${formatDateDisplay(item.date)}</span>
             <div class="row-actions">
                 <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
                     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -56,13 +99,27 @@ function renderTasks() {
 function renderGoals() {
     const container = document.getElementById("goalListContainer");
     container.innerHTML = "";
+    
+    if (isLoading.goals) {
+        container.innerHTML = '<div class="loading-container"><div class="loader"></div><p>Loading goals...</p></div>';
+        return;
+    }
+    
+    if (data.goals.length === 0) {
+        container.innerHTML = '<div class="empty-state">No goals added yet. Set your first goal below!</div>';
+        return;
+    }
+    
     data.goals.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-goals";
+        const priorityUpper = (item.priority || 'medium').toUpperCase();
+        const priorityColor = PRIORITY_COLORS[priorityUpper] || "#f59e0b";
+        
         div.innerHTML = `
             <span class="editable" contenteditable="true" onblur="editText(this, 'goals', ${index}, 'text')">${item.text}</span>
-            <span class="editable" onclick="editSelect(this, 'goals', ${index}, 'priority', PRIORITY_OPTS)">${item.priority || 'medium'}</span>
-            <span class="editable" onclick="editDate(this, 'goals', ${index}, 'date')">${item.date || ''}</span>
+            <span class="editable" style="color: ${priorityColor};" onclick="editSelect(this, 'goals', ${index}, 'priority', PRIORITY_OPTS)">${priorityUpper}</span>
+            <span class="editable" onclick="editDate(this, 'goals', ${index}, 'date')">${formatDateDisplay(item.date)}</span>
             <div class="row-actions">
                 <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
                     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -79,12 +136,23 @@ function renderGoals() {
 function renderReminders() {
     const container = document.getElementById("reminderListContainer");
     container.innerHTML = "";
+    
+    if (isLoading.reminders) {
+        container.innerHTML = '<div class="loading-container"><div class="loader"></div><p>Loading reminders...</p></div>';
+        return;
+    }
+    
+    if (data.reminders.length === 0) {
+        container.innerHTML = '<div class="empty-state">No reminders added yet. Add your first reminder below!</div>';
+        return;
+    }
+    
     data.reminders.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-reminders";
         div.innerHTML = `
             <span class="editable" contenteditable="true" onblur="editText(this, 'reminders', ${index}, 'text')">${item.text}</span>
-            <span class="editable" onclick="editDate(this, 'reminders', ${index}, 'date')">${item.date || ''}</span>
+            <span class="editable" onclick="editDate(this, 'reminders', ${index}, 'date')">${formatDateDisplay(item.date)}</span>
             <span class="editable" onclick="editTime(this, 'reminders', ${index}, 'time')">${item.time || ''}</span>
             <span class="editable" onclick="editSelect(this, 'reminders', ${index}, 'repeat', REPEAT_OPTS)">${item.repeat || 'NONE'}</span>
             <div class="row-actions">
@@ -105,6 +173,17 @@ function renderHabits() {
     if (!container) return;
     
     container.innerHTML = "";
+    
+    if (isLoading.habits) {
+        container.innerHTML = '<div class="loading-container"><div class="loader"></div><p>Loading habits...</p></div>';
+        return;
+    }
+    
+    if (data.habits.length === 0) {
+        container.innerHTML = '<div class="empty-state">No habits added yet. Start tracking your first habit below!</div>';
+        return;
+    }
+    
     data.habits.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-habits";
@@ -141,7 +220,7 @@ function renderUpcoming() {
 
     let filterFn;
     if (filterDate) {
-        titleEl.innerText = `EVENTS: ${filterDate}`;
+        titleEl.innerText = `EVENTS: ${formatDateDisplay(filterDate)}`;
         filterFn = (dateStr) => dateStr === filterDate;
     } else {
         titleEl.innerText = "UPCOMING (7 DAYS)";
@@ -165,19 +244,13 @@ function renderUpcoming() {
     allItems.forEach((item) => {
         const div = document.createElement("div");
         div.className = "upcoming-item";
-        div.innerHTML = `<div class="up-meta"><span>${item.type}</span><span>${item.date}</span></div><div style="font-weight:bold;">${item.text}</div>`;
+        div.innerHTML = `<div class="up-meta"><span>${item.type}</span><span>${formatDateDisplay(item.date)}</span></div><div style="font-weight:bold;">${item.text}</div>`;
         container.appendChild(div);
     });
 
     if (allItems.length === 0) {
         container.innerHTML = '<div style="text-align:center; padding:20px; color:#555;">No events found</div>';
     }
-}
-
-function resetFilter() {
-    filterDate = null;
-    renderUpcoming();
-    renderCalendar(calCurrentMonth, calCurrentYear);
 }
 
 // --- CALENDAR ---
@@ -251,7 +324,7 @@ function addItem(type) {
         fetch("/addTask", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, tags: tag, date })
+            body: JSON.stringify({ text, tags: tag, date, status: "NOT STARTED" })
         }).then(() => {
             document.getElementById("taskInput").value = "";
             document.getElementById("taskDate").value = "";
@@ -505,46 +578,88 @@ function switchTab(tabName) {
 
 // --- LOAD ---
 function loadTasksFromDB() {
+    isLoading.tasks = true;
+    renderTasks();
+    
     fetch("/getTasks")
         .then(res => res.json())
         .then(tasks => {
-            data.tasks = tasks.map(t => ({ id: t.id, text: t.text, tags: t.tags || [], date: t.date, note: t.note, status: t.status }));
+            data.tasks = tasks.map(t => ({ 
+                id: t.id, 
+                text: t.text, 
+                tags: t.tags || [], 
+                date: t.date, 
+                note: t.note, 
+                status: (t.status || 'NOT STARTED').toUpperCase()
+            }));
+            isLoading.tasks = false;
             renderTasks();
             renderUpcoming();
         })
-        .catch(err => console.error("Error loading tasks:", err));
+        .catch(err => {
+            console.error("Error loading tasks:", err);
+            isLoading.tasks = false;
+            renderTasks();
+        });
 }
 
 function loadGoalsFromDB() {
+    isLoading.goals = true;
+    renderGoals();
+    
     fetch("/getGoals")
         .then(res => res.json())
         .then(goals => {
-            data.goals = goals;
+            data.goals = goals.map(g => ({
+                ...g,
+                priority: (g.priority || 'MEDIUM').toUpperCase()
+            }));
+            isLoading.goals = false;
             renderGoals();
             renderUpcoming();
         })
-        .catch(err => console.error("Error loading goals:", err));
+        .catch(err => {
+            console.error("Error loading goals:", err);
+            isLoading.goals = false;
+            renderGoals();
+        });
 }
 
 function loadRemindersFromDB() {
+    isLoading.reminders = true;
+    renderReminders();
+    
     fetch("/getReminders")
         .then(res => res.json())
         .then(rem => {
             data.reminders = rem;
+            isLoading.reminders = false;
             renderReminders();
             renderUpcoming();
         })
-        .catch(err => console.error("Error loading reminders:", err));
+        .catch(err => {
+            console.error("Error loading reminders:", err);
+            isLoading.reminders = false;
+            renderReminders();
+        });
 }
 
 function loadHabitsFromDB() {
+    isLoading.habits = true;
+    renderHabits();
+    
     fetch("/getHabits")
         .then(res => res.json())
         .then(habits => {
             data.habits = habits;
+            isLoading.habits = false;
             renderHabits();
         })
-        .catch(err => console.log("Habits not loaded:", err));
+        .catch(err => {
+            console.log("Habits not loaded:", err);
+            isLoading.habits = false;
+            renderHabits();
+        });
 }
 
 // --- INIT ---
