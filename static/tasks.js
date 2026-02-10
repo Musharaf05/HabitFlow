@@ -47,6 +47,16 @@ function formatDateDisplay(dateStr) {
     return `${day}/${month}/${year}`;
 }
 
+// --- TIME FORMATTING (12-hour format) ---
+function formatTime12Hour(time24) {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(':');
+    let hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 || 12;
+    return `${hour}:${minutes} ${ampm}`;
+}
+
 // --- RENDER ---
 function renderAll() {
     renderTasks();
@@ -150,10 +160,11 @@ function renderReminders() {
     data.reminders.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-row grid-reminders";
+        const time12 = formatTime12Hour(item.time);
         div.innerHTML = `
             <span class="editable" contenteditable="true" onblur="editText(this, 'reminders', ${index}, 'text')">${item.text}</span>
             <span class="editable" onclick="editDate(this, 'reminders', ${index}, 'date')">${formatDateDisplay(item.date)}</span>
-            <span class="editable" onclick="editTime(this, 'reminders', ${index}, 'time')">${item.time || ''}</span>
+            <span class="editable" onclick="editTime(this, 'reminders', ${index}, 'time')" data-time24="${item.time || ''}">${time12}</span>
             <span class="editable" onclick="editSelect(this, 'reminders', ${index}, 'repeat', REPEAT_OPTS)">${item.repeat || 'NONE'}</span>
             <div class="row-actions">
                 <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
@@ -251,6 +262,12 @@ function renderUpcoming() {
     if (allItems.length === 0) {
         container.innerHTML = '<div style="text-align:center; padding:20px; color:#555;">No events found</div>';
     }
+}
+
+function resetFilter() {
+    filterDate = null;
+    renderUpcoming();
+    renderCalendar(calCurrentMonth, calCurrentYear);
 }
 
 // --- CALENDAR ---

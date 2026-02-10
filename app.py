@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, jsonify, request, redirect, url_for, flash
+from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -160,7 +160,6 @@ def login():
         
         if user and user.check_password(password):
             login_user(user, remember=remember)
-            flash("Logged in successfully!", "success")
             
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('dashboard'))
@@ -177,6 +176,13 @@ def logout():
     flash("Logged out successfully", "success")
     return redirect(url_for('login'))
 
+
+# ============== SERVICE WORKER ROUTE ==============
+
+@app.route("/service-worker.js")
+def service_worker():
+    """Serve the service worker file"""
+    return send_from_directory("static", "service-worker.js", mimetype="application/javascript")
 
 @app.route("/dashboard")
 @login_required
