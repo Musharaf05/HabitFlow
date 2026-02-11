@@ -333,6 +333,15 @@ class NotificationManager {
         }
     }
 
+    clearNotificationFlag(reminderId, date) {
+        const reminderKey = `${reminderId}-${date}`;
+        if (this.notifiedReminders.has(reminderKey)) {
+            this.notifiedReminders.delete(reminderKey);
+            this.saveNotifiedReminders();
+            console.log(`✓ Cleared notification flag for reminder ${reminderId} - can notify again`);
+        }
+    }
+
     scheduleResetAtMidnight() {
         const now = new Date();
         const night = new Date(

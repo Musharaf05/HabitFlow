@@ -420,7 +420,9 @@ function updateItemInDB(type, id, field, value) {
         }
         return response.json();
     })
-    .then(data => console.log("Update successful:", data))
+    .then(data => {
+        console.log("Update successful:", data);
+    })
     .catch(error => {
         console.error("Error updating:", error);
         alert("Error connecting to server");
@@ -482,8 +484,21 @@ function editDate(el, type, index, field) {
     const save = () => {
         if (input.value) {
             const newValue = input.value;
+            const oldDate = data[type][index][field];
             data[type][index][field] = newValue;
             const id = data[type][index].id;
+            
+            // Clear notification flag for reminders when date is edited
+            if (type === "reminders" && typeof notificationManager !== 'undefined') {
+                // Clear flag for old date
+                if (oldDate) {
+                    notificationManager.clearNotificationFlag(id, oldDate);
+                }
+                // Clear flag for new date
+                notificationManager.clearNotificationFlag(id, newValue);
+                console.log(`🔄 Cleared notification flag for reminder ID: ${id} - can notify again`);
+            }
+            
             updateItemInDB(type, id, "date", newValue);
         }
         renderAll();
@@ -506,6 +521,14 @@ function editTime(el, type, index, field) {
             const newValue = input.value;
             data[type][index][field] = newValue;
             const id = data[type][index].id;
+            
+            // Clear notification flag for reminders when time is edited
+            if (type === "reminders" && typeof notificationManager !== 'undefined') {
+                const reminderDate = data[type][index].date;
+                notificationManager.clearNotificationFlag(id, reminderDate);
+                console.log(`🔄 Cleared notification flag for reminder ID: ${id} - can notify again`);
+            }
+            
             updateItemInDB(type, id, "time", newValue);
         }
         renderAll();
