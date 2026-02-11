@@ -59,6 +59,12 @@ body {
     letter-spacing: 0.5px;
 }
 
+.navbar-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 .logout-btn {
     background-color: var(--danger-color);
     color: var(--text-primary);
@@ -500,6 +506,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     font-size: 1rem;
     letter-spacing: 1px;
     font-weight: bold;
+}
+
+.reset-btn {
+    display: none;
 }
 
 .upcoming-list {

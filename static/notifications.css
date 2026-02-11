@@ -1,4 +1,4 @@
-/* --- NOTIFICATION BANNER (Black & White Theme) --- */
+/* --- NOTIFICATION BANNER --- */
 .notification-banner {
     position: fixed;
     top: 80px;
@@ -113,33 +113,33 @@
     color: var(--text-primary);
 }
 
-/* --- NOTIFICATION SETTINGS BUTTON (Minimal Black & White) --- */
+/* --- NOTIFICATION ICON BUTTON (POSITIONED NEXT TO LOGOUT) --- */
 .notification-settings-btn {
-    background: transparent;
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-body);
     color: var(--text-primary);
-    padding: 8px 10px;
+    text-decoration: none;
+    padding: 8px 12px;
     border-radius: var(--radius-sm);
+    border: 2px solid white;
+    font-weight: bold;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    transition: opacity 0.2s;
     cursor: pointer;
-    transition: all 0.2s;
-    margin-right: 10px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    position: relative;
 }
 
 .notification-settings-btn:hover {
-    background: var(--bg-input);
-    border-color: var(--text-primary);
-    transform: translateY(-1px);
+    opacity: 0.8;
 }
 
 .notification-settings-btn svg {
     display: block;
 }
 
-/* --- NOTIFICATION MODAL (Black & White Theme) --- */
+/* --- NOTIFICATION MODAL --- */
 .notification-modal {
     position: fixed;
     top: 0;
@@ -165,7 +165,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     width: 90%;
-    max-width: 550px;
+    max-width: 600px;
     max-height: 85vh;
     overflow-y: auto;
     animation: slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -233,7 +233,7 @@
     padding: 16px;
     background: var(--bg-input);
     border-radius: var(--radius-md);
-    margin-bottom: 12px;
+    margin-bottom: 20px;
     border: 1px solid var(--border-color);
 }
 
@@ -263,8 +263,7 @@
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.enable-notifications-btn,
-.test-notification-btn {
+.enable-notifications-btn {
     width: 100%;
     padding: 14px;
     background: var(--accent-color);
@@ -274,93 +273,123 @@
     font-weight: bold;
     font-size: 1rem;
     cursor: pointer;
-    margin-bottom: 12px;
+    margin-bottom: 20px;
     transition: all 0.2s;
     font-family: var(--font-family);
     letter-spacing: 1px;
 }
 
-.enable-notifications-btn:hover,
-.test-notification-btn:hover {
-    transform: translateY(-2px);
+.enable-notifications-btn:hover {
     opacity: 0.9;
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
-.test-notification-btn {
-    background: var(--bg-input);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
+/* --- NOTIFICATION HISTORY --- */
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
 }
 
-.test-notification-btn:hover {
-    background: var(--bg-hover);
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
-}
-
-.notification-info {
-    margin-top: 20px;
-    padding: 18px;
-    background: var(--bg-input);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-color);
-}
-
-.notification-info.warning {
-    border-color: #f59e0b;
-    background: rgba(245, 158, 11, 0.05);
-}
-
-.notification-info h3 {
-    font-size: 1rem;
-    margin-bottom: 12px;
-    color: var(--text-primary);
-    letter-spacing: 0.5px;
-}
-
-.notification-info ul {
-    list-style: none;
-    padding: 0;
+.history-header h3 {
+    font-size: 1.1rem;
     margin: 0;
-}
-
-.notification-info li {
-    padding: 8px 0;
-    padding-left: 20px;
-    position: relative;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    line-height: 1.5;
-}
-
-.notification-info li::before {
-    content: "•";
-    position: absolute;
-    left: 6px;
+    letter-spacing: 0.5px;
     color: var(--text-primary);
-    font-weight: bold;
-    font-size: 1.2rem;
 }
 
-.notification-info.warning li::before {
-    color: #f59e0b;
+.clear-history-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-family);
 }
 
-/* --- SCROLLBAR FOR MODAL --- */
-.notification-modal-content::-webkit-scrollbar {
+.clear-history-btn:hover {
+    background: var(--bg-input);
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.notification-history-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.empty-history {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.history-item {
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    transition: all 0.2s;
+}
+
+.history-item:hover {
+    border-color: var(--text-primary);
+}
+
+.history-icon {
+    flex-shrink: 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 2px;
+}
+
+.history-details {
+    flex-grow: 1;
+}
+
+.history-text {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.history-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-family: monospace;
+}
+
+/* --- SCROLLBAR --- */
+.notification-modal-content::-webkit-scrollbar,
+.notification-history-list::-webkit-scrollbar {
     width: 8px;
 }
 
-.notification-modal-content::-webkit-scrollbar-track {
+.notification-modal-content::-webkit-scrollbar-track,
+.notification-history-list::-webkit-scrollbar-track {
     background: var(--bg-body);
     border-radius: 4px;
 }
 
-.notification-modal-content::-webkit-scrollbar-thumb {
+.notification-modal-content::-webkit-scrollbar-thumb,
+.notification-history-list::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 4px;
 }
 
-.notification-modal-content::-webkit-scrollbar-thumb:hover {
+.notification-modal-content::-webkit-scrollbar-thumb:hover,
+.notification-history-list::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
 }
