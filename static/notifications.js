@@ -120,12 +120,12 @@ class NotificationManager {
     }
 
     startChecking() {
-        console.log('Starting reminder checks every 30 seconds...');
+        console.log('Starting reminder checks every 10 seconds...');
         this.checkReminders();
         
         this.checkInterval = setInterval(() => {
             this.checkReminders();
-        }, 30000); // Check every 30 seconds
+        }, 10000); // Check every 10 seconds for faster response
     }
 
     stopChecking() {
