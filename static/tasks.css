@@ -572,3 +572,406 @@ input[type="time"]::-webkit-calendar-picker-indicator {
         max-height: 600px;
     }
 }
+/* ============================================
+   MODERN BADGES
+   ============================================ */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+.badge-icon {
+    font-size: 0.8rem;
+    line-height: 1;
+}
+
+.badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Status badges — colors set inline via JS */
+.status-badge { cursor: default; }
+
+/* Priority badges — colors set inline via JS */
+.priority-badge { cursor: default; }
+
+/* Tag badge */
+.tag-badge {
+    background: rgba(139,92,246,0.15);
+    border-color: rgba(139,92,246,0.3);
+    color: #a78bfa;
+}
+
+/* Repeat badge */
+.repeat-badge {
+    background: rgba(107,114,128,0.12);
+    border-color: rgba(107,114,128,0.25);
+    color: var(--text-secondary);
+}
+.repeat-badge.repeat-active {
+    background: rgba(59,130,246,0.15);
+    border-color: rgba(59,130,246,0.3);
+    color: #60a5fa;
+}
+
+/* Frequency badge */
+.freq-badge {
+    background: rgba(16,185,129,0.12);
+    border-color: rgba(16,185,129,0.25);
+    color: #34d399;
+}
+
+/* ============================================
+   CELL STYLES
+   ============================================ */
+.cell-text {
+    font-size: 0.92rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cell-date {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.cell-time {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.cell-time .ampm {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+.no-date {
+    color: #444;
+}
+
+/* ============================================
+   HABITS TAB IMPROVEMENTS
+   ============================================ */
+
+/* Override grid for habits */
+.grid-habits {
+    grid-template-columns: 1fr 130px 80px 100px;
+    gap: 10px;
+    align-items: center;
+}
+
+.habit-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    color: #f97316;
+    background: rgba(249,115,22,0.12);
+    border: 1px solid rgba(249,115,22,0.25);
+    border-radius: 12px;
+    padding: 2px 8px;
+    width: fit-content;
+}
+
+.habit-check-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.habit-check {
+    background: transparent;
+    border: 2px solid var(--border-color);
+    color: var(--text-secondary);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.habit-check svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+}
+
+.habit-check:hover {
+    border-color: #22c55e;
+    color: #22c55e;
+    transform: scale(1.1);
+}
+
+.habit-check.completed {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #000;
+    transform: scale(1.05);
+}
+
+.habit-check.completed:hover {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+/* ============================================
+   EDIT MODAL
+   ============================================ */
+
+#modalOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+}
+
+#modalOverlay.open {
+    display: block;
+    animation: fadeIn 0.15s ease;
+}
+
+#editModal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -52%);
+    width: 480px;
+    max-width: calc(100vw - 40px);
+    background: #1c1c1f;
+    border: 1px solid #3f3f46;
+    border-radius: 16px;
+    z-index: 600;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    overflow: hidden;
+}
+
+#editModal.open {
+    display: block;
+    animation: slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translate(-50%, -45%); }
+    to   { opacity: 1; transform: translate(-50%, -52%); }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #3f3f46;
+}
+
+#editModalTitle {
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+.modal-close-btn:hover { color: var(--text-primary); }
+.modal-close-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+#editModalBody {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.modal-field label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
+}
+
+.modal-field input,
+.modal-field select {
+    background: #27272a;
+    border: 1px solid #3f3f46;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+    user-select: text;
+}
+
+.modal-field input:focus,
+.modal-field select:focus {
+    border-color: rgba(255,255,255,0.4);
+}
+
+.modal-field input.field-error {
+    border-color: var(--danger-color) !important;
+    animation: shake 0.3s ease;
+}
+
+.modal-row {
+    display: flex;
+    gap: 12px;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding: 16px 24px 20px;
+    border-top: 1px solid #3f3f46;
+}
+
+.modal-cancel-btn {
+    background: transparent;
+    border: 1px solid #3f3f46;
+    color: var(--text-secondary);
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+}
+.modal-cancel-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+.modal-save-btn {
+    background: var(--text-primary);
+    border: none;
+    color: var(--bg-body);
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: opacity 0.15s;
+}
+.modal-save-btn:hover { opacity: 0.85; }
+
+/* ============================================
+   REQUIRED FIELD ERROR STATE
+   ============================================ */
+
+input.field-error {
+    border-color: var(--danger-color) !important;
+    animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+}
+
+/* ============================================
+   UPCOMING WIDGET IMPROVEMENTS
+   ============================================ */
+
+.up-type-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 2px 7px;
+    border-radius: 10px;
+}
+
+.up-date {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.up-text {
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-top: 4px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/*INPUT AREA - DATE/TIME ICONS WHITE*/
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+    opacity: 0.6;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}

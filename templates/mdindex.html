@@ -36,14 +36,14 @@
                     </div>
                     <div class="list-container" id="taskListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="taskInput" class="input-text" placeholder="NEW TASK" />
+                        <input type="text" id="taskInput" class="input-text" placeholder="NEW TASK" data-placeholder="NEW TASK" />
                         <select id="taskTag" class="input-sm">
                             <option value="PROJECTS">PROJECTS</option>
                             <option value="HOMEWORK">HOMEWORK</option>
                             <option value="PERSONAL">PERSONAL</option>
                             <option value="WORK">WORK</option>
                         </select>
-                        <input type="date" id="taskDate" class="input-sm" />
+                        <input type="date" id="taskDate" class="input-sm" data-placeholder="" />
                         <button class="add-btn" onclick="addItem('tasks')">ADD</button>
                     </div>
                 </div>
@@ -58,13 +58,13 @@
                     </div>
                     <div class="list-container" id="goalListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="goalInput" class="input-text" placeholder="NEW GOAL" />
+                        <input type="text" id="goalInput" class="input-text" placeholder="NEW GOAL" data-placeholder="NEW GOAL" />
                         <select id="goalPriority" class="input-sm">
                             <option value="LOW">LOW</option>
                             <option value="MEDIUM" selected>MEDIUM</option>
                             <option value="HIGH">HIGH</option>
                         </select>
-                        <input type="date" id="goalDate" class="input-sm" />
+                        <input type="date" id="goalDate" class="input-sm" data-placeholder="" />
                         <button class="add-btn" onclick="addItem('goals')">ADD</button>
                     </div>
                 </div>
@@ -80,7 +80,7 @@
                     </div>
                     <div class="list-container" id="reminderListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="remInput" class="input-text" placeholder="NEW REMINDER" />
+                        <input type="text" id="remInput" class="input-text" placeholder="NEW REMINDER" data-placeholder="NEW REMINDER" />
                         <select id="remRepeat" class="input-sm">
                             <option value="NONE">NO REPEAT</option>
                             <option value="DAILY">DAILY</option>
@@ -88,8 +88,8 @@
                             <option value="BI-WEEKLY">BI-WEEKLY</option>
                             <option value="MONTHLY">MONTHLY</option>
                         </select>
-                        <input type="time" id="remTime" class="input-xs" value="09:00" />
-                        <input type="date" id="remDate" class="input-sm" />
+                        <input type="time" id="remTime" class="input-xs" value="09:00" data-placeholder="" />
+                        <input type="date" id="remDate" class="input-sm" data-placeholder="" />
                         <button class="add-btn" onclick="addItem('reminders')">ADD</button>
                     </div>
                 </div>
@@ -104,7 +104,7 @@
                     </div>
                     <div class="list-container" id="habitListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="habitInput" class="input-text" placeholder="NEW HABIT" />
+                        <input type="text" id="habitInput" class="input-text" placeholder="NEW HABIT" data-placeholder="NEW HABIT" />
                         <select id="habitFrequency" class="input-sm">
                             <option value="Daily" selected>DAILY</option>
                             <option value="Mon-Fri">MON-FRI</option>
@@ -147,6 +147,24 @@
                 <div class="ctx-item" onclick="deleteItem()">Delete Item</div>
             </div>
         </div>
+        <!-- MODAL OVERLAY -->
+        <div id="modalOverlay" onclick="closeEditModal()"></div>
+
+        <!-- EDIT MODAL -->
+        <div id="editModal">
+            <div class="modal-header">
+                <span id="editModalTitle">EDIT</span>
+                <button class="modal-close-btn" onclick="closeEditModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div id="editModalBody"></div>
+            <div class="modal-footer">
+                <button class="modal-cancel-btn" onclick="closeEditModal()">CANCEL</button>
+                <button class="modal-save-btn" onclick="saveEditModal()">SAVE CHANGES</button>
+            </div>
+        </div>
+
         <script src="../static/tasks.js"></script>
         <script src="../static/notifications.js"></script>
     </body>
