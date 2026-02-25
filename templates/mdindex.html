@@ -12,6 +12,25 @@
         <div class="navbar">
             <span class="welcome-text">Welcome, {{ username }}!</span>
             <div class="navbar-actions">
+                <!-- Notification Icon (NEW) -->
+                <div class="notification-icon" id="notificationIcon" onclick="toggleNotificationPanel()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="notification-bubble" id="notificationBubble">0</span>
+                </div>
+                
+                <!-- Mobile Menu Toggle (NEW) -->
+                <div class="mobile-menu-toggle" onclick="toggleMobileSidebar()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8 2v4"/>
+                        <path d="M16 2v4"/>
+                        <rect x="3" y="4" width="18" height="18" rx="2"/>
+                        <path d="M3 10h18"/>
+                    </svg>
+                </div>
+                
                 <a href="/logout" class="logout-btn">LOGOUT</a>
             </div>
         </div>
@@ -36,14 +55,14 @@
                     </div>
                     <div class="list-container" id="taskListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="taskInput" class="input-text" placeholder="NEW TASK" />
-                        <select id="taskTag" class="input-sm">
+                        <input type="text" id="taskInput" class="input-text" placeholder="NEW TASK *" required />
+                        <select id="taskTag" class="input-sm" required>
                             <option value="PROJECTS">PROJECTS</option>
                             <option value="HOMEWORK">HOMEWORK</option>
                             <option value="PERSONAL">PERSONAL</option>
                             <option value="WORK">WORK</option>
                         </select>
-                        <input type="date" id="taskDate" class="input-sm" />
+                        <input type="date" id="taskDate" class="input-sm" required />
                         <button class="add-btn" onclick="addItem('tasks')">ADD</button>
                     </div>
                 </div>
@@ -58,13 +77,13 @@
                     </div>
                     <div class="list-container" id="goalListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="goalInput" class="input-text" placeholder="NEW GOAL" />
-                        <select id="goalPriority" class="input-sm">
+                        <input type="text" id="goalInput" class="input-text" placeholder="NEW GOAL *" required />
+                        <select id="goalPriority" class="input-sm" required>
                             <option value="LOW">LOW</option>
                             <option value="MEDIUM" selected>MEDIUM</option>
                             <option value="HIGH">HIGH</option>
                         </select>
-                        <input type="date" id="goalDate" class="input-sm" />
+                        <input type="date" id="goalDate" class="input-sm" required />
                         <button class="add-btn" onclick="addItem('goals')">ADD</button>
                     </div>
                 </div>
@@ -80,16 +99,16 @@
                     </div>
                     <div class="list-container" id="reminderListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="remInput" class="input-text" placeholder="NEW REMINDER" />
-                        <select id="remRepeat" class="input-sm">
+                        <input type="text" id="remInput" class="input-text" placeholder="NEW REMINDER *" required />
+                        <select id="remRepeat" class="input-sm" required>
                             <option value="NONE">NO REPEAT</option>
                             <option value="DAILY">DAILY</option>
                             <option value="WEEKLY">WEEKLY</option>
                             <option value="BI-WEEKLY">BI-WEEKLY</option>
                             <option value="MONTHLY">MONTHLY</option>
                         </select>
-                        <input type="time" id="remTime" class="input-xs" value="09:00" />
-                        <input type="date" id="remDate" class="input-sm" />
+                        <input type="time" id="remTime" class="input-xs" value="09:00" required />
+                        <input type="date" id="remDate" class="input-sm" required />
                         <button class="add-btn" onclick="addItem('reminders')">ADD</button>
                     </div>
                 </div>
@@ -104,8 +123,8 @@
                     </div>
                     <div class="list-container" id="habitListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="habitInput" class="input-text" placeholder="NEW HABIT" />
-                        <select id="habitFrequency" class="input-sm">
+                        <input type="text" id="habitInput" class="input-text" placeholder="NEW HABIT *" required />
+                        <select id="habitFrequency" class="input-sm" required>
                             <option value="Daily" selected>DAILY</option>
                             <option value="Mon-Fri">MON-FRI</option>
                             <option value="Weekends">WEEKENDS</option>
@@ -147,6 +166,54 @@
                 <div class="ctx-item" onclick="deleteItem()">Delete Item</div>
             </div>
         </div>
+
+        <!-- Mobile Sidebar Overlay (NEW) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- Mobile Sidebar Panel (NEW) -->
+        <div class="sidebar-panel" id="sidebarPanel">
+            <div class="sidebar-close" onclick="closeMobileSidebar()">
+                <svg viewBox="0 0 24 24">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </div>
+            
+            <div class="calendar-widget">
+                <div class="cal-header">
+                    <button class="cal-nav-btn" onclick="changeMonth(-1)">&lt;</button>
+                    <span id="calMonthYear">Loading...</span>
+                    <button class="cal-nav-btn" onclick="changeMonth(1)">&gt;</button>
+                </div>
+                <div class="cal-grid">
+                    <div class="cal-day-name">Su</div>
+                    <div class="cal-day-name">Mo</div>
+                    <div class="cal-day-name">Tu</div>
+                    <div class="cal-day-name">We</div>
+                    <div class="cal-day-name">Th</div>
+                    <div class="cal-day-name">Fr</div>
+                    <div class="cal-day-name">Sa</div>
+                </div>
+                <div class="cal-grid" id="calDays"></div>
+            </div>
+
+            <div class="upcoming-widget" style="margin-top: 20px;">
+                <div class="section-header">
+                    <span class="section-title" id="upcomingTitle">UPCOMING (7 DAYS)</span>
+                </div>
+                <div class="upcoming-list" id="upcomingList"></div>
+            </div>
+        </div>
+
+        <!-- Notification Panel (NEW - Better than alert!) -->
+        <div class="notification-panel" id="notificationPanel">
+            <div class="notification-panel-header">
+                <span>NOTIFICATIONS</span>
+                <span class="notification-panel-close" onclick="closeNotificationPanel()">&times;</span>
+            </div>
+            <div class="notification-panel-content" id="notificationPanelContent"></div>
+        </div>
+
         <script src="../static/tasks.js"></script>
         <script src="../static/notifications.js"></script>
     </body>

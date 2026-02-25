@@ -25,6 +25,95 @@ const REPEAT_OPTS = ["NONE", "DAILY", "WEEKLY", "BI-WEEKLY", "MONTHLY"];
 const FREQUENCY_OPTS = ["Daily", "Mon-Fri", "Weekends", "Custom"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+// --- BADGE HELPER FUNCTIONS (NEW) ---
+function getBadgeClass(value, type) {
+    const normalized = value.toUpperCase().replace(/ /g, '-').toLowerCase();
+    return `editable badge-style badge-${normalized}`;
+}
+
+// --- NOTIFICATION TRACKING (NEW) ---
+let notificationCount = 0;
+
+function updateNotificationBubble() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let count = 0;
+    
+    // Count upcoming reminders (today and tomorrow)
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    data.reminders.forEach(r => {
+        if (r.date) {
+            const d = new Date(r.date);
+            d.setHours(0, 0, 0, 0);
+            if (d >= today && d <= tomorrow) count++;
+        }
+    });
+    
+    // Count overdue tasks
+    data.tasks.forEach(t => {
+        if (t.date && t.status !== 'COMPLETED' && t.status !== 'CANCELLED') {
+            const d = new Date(t.date);
+            d.setHours(0, 0, 0, 0);
+            if (d < today) count++;
+        }
+    });
+    
+    notificationCount = count;
+    const bubble = document.getElementById('notificationBubble');
+    if (bubble) {
+        if (count > 0) {
+            bubble.innerText = count > 99 ? '99+' : count;
+            bubble.classList.add('show');
+        } else {
+            bubble.classList.remove('show');
+        }
+    }
+}
+
+// --- HABIT HELPERS (NEW) ---
+function calculateStreak(completedDates) {
+    if (!completedDates || completedDates.length === 0) return 0;
+    
+    const sorted = [...completedDates].sort((a, b) => new Date(b) - new Date(a));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let streak = 0;
+    let currentDate = new Date(today);
+    
+    for (let dateStr of sorted) {
+        const date = new Date(dateStr);
+        date.setHours(0, 0, 0, 0);
+        
+        if (date.getTime() === currentDate.getTime()) {
+            streak++;
+            currentDate.setDate(currentDate.getDate() - 1);
+        } else if (date.getTime() < currentDate.getTime()) {
+            break;
+        }
+    }
+    
+    return streak;
+}
+
+function calculateWeekProgress(completedDates) {
+    if (!completedDates || completedDates.length === 0) return 0;
+    
+    const today = new Date();
+    const weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
+    
+    const recentCompletions = completedDates.filter(dateStr => {
+        const date = new Date(dateStr);
+        return date >= weekAgo && date <= today;
+    }).length;
+    
+    return Math.min((recentCompletions / 7) * 100, 100);
+}
+
 // --- COLOR CONSTANTS ---
 const STATUS_COLORS = {
     "NOT STARTED": "#6b7280",
@@ -65,6 +154,7 @@ function renderAll() {
     renderHabits();
     renderUpcoming();
     renderCalendar(calCurrentMonth, calCurrentYear);
+    updateNotificationBubble(); // NEW
 }
 
 function renderTasks() {
@@ -89,9 +179,9 @@ function renderTasks() {
         const statusColor = STATUS_COLORS[statusUpper] || "#6b7280";
         
         div.innerHTML = `
-            <span class="editable" style="color: ${statusColor};" onclick="editSelect(this, 'tasks', ${index}, 'status', STATUS_OPTS)">${statusUpper}</span>
+            <span class="${getBadgeClass(statusUpper, 'status')}" style="color: ${statusColor};" onclick="editSelect(this, 'tasks', ${index}, 'status', STATUS_OPTS)">${statusUpper}</span>
             <span class="editable" contenteditable="true" onblur="editText(this, 'tasks', ${index}, 'text')">${item.text}</span>
-            <span class="editable" onclick="editSelect(this, 'tasks', ${index}, 'tags', TAG_OPTS)">${displayTag}</span>
+            <span class="${getBadgeClass(displayTag, 'tag')}" onclick="editSelect(this, 'tasks', ${index}, 'tags', TAG_OPTS)">${displayTag}</span>
             <span class="editable" onclick="editDate(this, 'tasks', ${index}, 'date')">${formatDateDisplay(item.date)}</span>
             <div class="row-actions">
                 <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
@@ -128,7 +218,7 @@ function renderGoals() {
         
         div.innerHTML = `
             <span class="editable" contenteditable="true" onblur="editText(this, 'goals', ${index}, 'text')">${item.text}</span>
-            <span class="editable" style="color: ${priorityColor};" onclick="editSelect(this, 'goals', ${index}, 'priority', PRIORITY_OPTS)">${priorityUpper}</span>
+            <span class="${getBadgeClass(priorityUpper, 'priority')}" style="color: ${priorityColor};" onclick="editSelect(this, 'goals', ${index}, 'priority', PRIORITY_OPTS)">${priorityUpper}</span>
             <span class="editable" onclick="editDate(this, 'goals', ${index}, 'date')">${formatDateDisplay(item.date)}</span>
             <div class="row-actions">
                 <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
@@ -200,14 +290,27 @@ function renderHabits() {
         div.className = "list-row grid-habits";
         
         const today = new Date().toISOString().split('T')[0];
-        const isCompletedToday = (item.completed_dates || []).includes(today);
+        const completedDates = item.completed_dates || [];
+        const isCompletedToday = completedDates.includes(today);
+        
+        // Calculate streak and progress (NEW)
+        const streak = calculateStreak(completedDates);
+        const weekProgress = calculateWeekProgress(completedDates);
         
         div.innerHTML = `
-            <span class="editable" contenteditable="true" onblur="editText(this, 'habits', ${index}, 'text')">${item.text}</span>
+            <div class="habit-content">
+                <span class="editable" contenteditable="true" onblur="editText(this, 'habits', ${index}, 'text')">${item.text}</span>
+                <div class="habit-progress">
+                    <div class="habit-progress-bar" style="width: ${weekProgress}%"></div>
+                </div>
+            </div>
             <span class="editable" onclick="editSelect(this, 'habits', ${index}, 'frequency', FREQUENCY_OPTS)">${item.frequency || 'Daily'}</span>
             <button class="habit-check ${isCompletedToday ? 'completed' : ''}" onclick="toggleHabitToday(${index})">
                 ${isCompletedToday ? '✓' : '○'}
             </button>
+            <div class="habit-streak ${streak > 0 ? 'active' : ''}">
+                🔥 ${streak} day${streak !== 1 ? 's' : ''}
+            </div>
             <div class="row-actions">
                 <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
                     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -336,7 +439,14 @@ function addItem(type) {
         const text = document.getElementById("taskInput").value.toUpperCase();
         const tag = document.getElementById("taskTag").value;
         const date = document.getElementById("taskDate").value;
-        if (!text) return;
+        if (!text) {
+            alert("Task text is required!");
+            return;
+        }
+        if (!date) {
+            alert("Task date is required!");
+            return;
+        }
 
         fetch("/addTask", {
             method: "POST",
@@ -353,7 +463,14 @@ function addItem(type) {
         const text = document.getElementById("goalInput").value.toUpperCase();
         const priority = document.getElementById("goalPriority").value;
         const date = document.getElementById("goalDate").value;
-        if (!text) return;
+        if (!text) {
+            alert("Goal text is required!");
+            return;
+        }
+        if (!date) {
+            alert("Goal date is required!");
+            return;
+        }
 
         fetch("/addGoal", {
             method: "POST",
@@ -371,7 +488,18 @@ function addItem(type) {
         const date = document.getElementById("remDate").value;
         const time = document.getElementById("remTime").value;
         const repeat = document.getElementById("remRepeat").value;
-        if (!text) return;
+        if (!text) {
+            alert("Reminder text is required!");
+            return;
+        }
+        if (!date) {
+            alert("Reminder date is required!");
+            return;
+        }
+        if (!time) {
+            alert("Reminder time is required!");
+            return;
+        }
 
         fetch("/addReminder", {
             method: "POST",
@@ -387,7 +515,10 @@ function addItem(type) {
     if (type === "habits") {
         const text = document.getElementById("habitInput")?.value.toUpperCase();
         const frequency = document.getElementById("habitFrequency")?.value || "Daily";
-        if (!text) return;
+        if (!text) {
+            alert("Habit text is required!");
+            return;
+        }
 
         fetch("/addHabit", {
             method: "POST",
@@ -635,6 +766,7 @@ function loadTasksFromDB() {
             isLoading.tasks = false;
             renderTasks();
             renderUpcoming();
+            updateNotificationBubble(); // NEW
         })
         .catch(err => {
             console.error("Error loading tasks:", err);
@@ -676,6 +808,7 @@ function loadRemindersFromDB() {
             isLoading.reminders = false;
             renderReminders();
             renderUpcoming();
+            updateNotificationBubble(); // NEW
         })
         .catch(err => {
             console.error("Error loading reminders:", err);
@@ -709,3 +842,121 @@ loadTasksFromDB();
 loadGoalsFromDB();
 loadRemindersFromDB();
 loadHabitsFromDB();
+
+// --- MOBILE SIDEBAR FUNCTIONS (NEW) ---
+function toggleMobileSidebar() {
+    const overlay = document.getElementById('sidebarOverlay');
+    const panel = document.getElementById('sidebarPanel');
+    
+    if (overlay && panel) {
+        if (overlay.classList.contains('active')) {
+            overlay.classList.remove('active');
+            panel.classList.remove('active');
+        } else {
+            overlay.classList.add('active');
+            panel.classList.add('active');
+        }
+    }
+}
+
+function closeMobileSidebar() {
+    const overlay = document.getElementById('sidebarOverlay');
+    const panel = document.getElementById('sidebarPanel');
+    if (overlay) overlay.classList.remove('active');
+    if (panel) panel.classList.remove('active');
+}
+
+// --- NOTIFICATION PANEL FUNCTIONS (NEW) ---
+function toggleNotificationPanel() {
+    const panel = document.getElementById('notificationPanel');
+    if (panel) {
+        if (panel.classList.contains('active')) {
+            panel.classList.remove('active');
+        } else {
+            renderNotificationPanel();
+            panel.classList.add('active');
+        }
+    }
+}
+
+function closeNotificationPanel() {
+    const panel = document.getElementById('notificationPanel');
+    if (panel) panel.classList.remove('active');
+}
+
+function renderNotificationPanel() {
+    const content = document.getElementById('notificationPanelContent');
+    if (!content) return;
+    
+    content.innerHTML = '';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    let notifications = [];
+    
+    // Upcoming reminders
+    data.reminders.forEach(r => {
+        if (r.date) {
+            const d = new Date(r.date);
+            d.setHours(0, 0, 0, 0);
+            if (d >= today && d <= tomorrow) {
+                notifications.push({
+                    type: 'REMINDER',
+                    text: r.text,
+                    date: formatDateDisplay(r.date),
+                    time: r.time ? formatTime12Hour(r.time) : ''
+                });
+            }
+        }
+    });
+    
+    // Overdue tasks
+    data.tasks.forEach(t => {
+        if (t.date && t.status !== 'COMPLETED' && t.status !== 'CANCELLED') {
+            const d = new Date(t.date);
+            d.setHours(0, 0, 0, 0);
+            if (d < today) {
+                notifications.push({
+                    type: 'OVERDUE TASK',
+                    text: t.text,
+                    date: formatDateDisplay(t.date)
+                });
+            }
+        }
+    });
+    
+    if (notifications.length === 0) {
+        content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No notifications</div>';
+        return;
+    }
+    
+    notifications.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'notification-item';
+        div.innerHTML = `
+            <div class="notification-item-type">${n.type}</div>
+            <div class="notification-item-text">${n.text}</div>
+            <div class="notification-item-date">${n.date}${n.time ? ' at ' + n.time : ''}</div>
+        `;
+        content.appendChild(div);
+    });
+}
+
+// Close notification panel when clicking outside
+document.addEventListener('click', (e) => {
+    const panel = document.getElementById('notificationPanel');
+    const icon = document.getElementById('notificationIcon');
+    if (panel && icon && !panel.contains(e.target) && !icon.contains(e.target)) {
+        closeNotificationPanel();
+    }
+});
+
+// Close sidebar when clicking overlay
+document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'sidebarOverlay') {
+        closeMobileSidebar();
+    }
+});
