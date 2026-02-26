@@ -11,14 +11,13 @@
         <div class="navbar">
             <span class="welcome-text">Welcome, {{ username }}!</span>
             <div class="navbar-actions">
-                <div class="notification-icon-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16">
+                <div class="notification-icon-wrapper" onclick="toggleNotificationPanel()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16" style="cursor: pointer;">
                     <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
                     </svg>
                     <span class="notification-bubble"></span>
                 </div>
                 
-                <!-- Mobile Menu Toggle -->
                 <div class="mobile-menu-toggle" onclick="toggleMobileSidebar()">
                     <svg viewBox="0 0 24 24">
                         <path d="M8 2v4"/>
@@ -31,6 +30,18 @@
                 <a href="/logout" class="logout-btn">LOGOUT</a>
             </div>
         </div>
+
+        <!-- Notification Panel -->
+        <div class="notification-panel" id="notificationPanel">
+            <div class="notification-panel-header">
+                <span>NOTIFICATIONS</span>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="clear-all-btn" onclick="clearAllNotifications()" id="clearAllBtn" style="display: none;">CLEAR ALL</button>
+                    <span class="notification-panel-close" onclick="closeNotificationPanel()">&times;</span>
+                </div>
+            </div>
+            <div class="notification-panel-content" id="notificationPanelContent"></div>
+        </div>
         
         <div class="dashboard-container">
             <main class="main-panel">
@@ -41,7 +52,6 @@
                     <button class="tab-btn" onclick="switchTab('habits')">HABITS</button>
                 </nav>
 
-                <!-- TASKS TAB -->
                 <div id="tab-tasks" class="tab-content active">
                     <div class="list-header grid-tasks">
                         <span>STATUS</span>
@@ -64,7 +74,6 @@
                     </div>
                 </div>
 
-                <!-- GOALS TAB -->
                 <div id="tab-goals" class="tab-content">
                     <div class="list-header grid-goals">
                         <span>GOAL</span>
@@ -85,7 +94,6 @@
                     </div>
                 </div>
 
-                <!-- REMINDERS TAB -->
                 <div id="tab-reminders" class="tab-content">
                     <div class="list-header grid-reminders">
                         <span>REMINDER</span>
@@ -110,7 +118,6 @@
                     </div>
                 </div>
 
-                <!-- HABITS TAB -->
                 <div id="tab-habits" class="tab-content">
                     <div class="list-header grid-habits">
                         <span>HABIT</span>
@@ -133,7 +140,6 @@
                 </div>
             </main>
 
-            <!-- Desktop Sidebar -->
             <aside class="sidebar">
                 <div class="calendar-widget">
                     <div class="cal-header">
@@ -162,10 +168,8 @@
             </aside>
         </div>
 
-        <!-- Mobile Sidebar Overlay -->
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
         
-        <!-- Mobile Sidebar Panel -->
         <div class="sidebar-panel" id="sidebarPanel">
             <div class="sidebar-close" onclick="closeMobileSidebar()">
                 <svg viewBox="0 0 24 24">
@@ -200,7 +204,6 @@
             </div>
         </div>
 
-        <!-- Edit Modal -->
         <div class="modal-overlay" id="editModal">
             <div class="modal-content">
                 <div class="modal-header">
