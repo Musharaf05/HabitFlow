@@ -16,6 +16,7 @@ let isLoading = {
 
 let filterDate = null;
 let calCurrentYear, calCurrentMonth;
+let currentEditModal = null;
 
 // --- CONSTANTS ---
 const STATUS_OPTS = ["NOT STARTED", "IN PROGRESS", "COMPLETED", "ON HOLD", "CANCELLED"];
@@ -25,47 +26,72 @@ const REPEAT_OPTS = ["NONE", "DAILY", "WEEKLY", "BI-WEEKLY", "MONTHLY"];
 const FREQUENCY_OPTS = ["Daily", "Mon-Fri", "Weekends", "Custom"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-// --- BADGE HELPER FUNCTIONS (NEW) ---
-function getBadgeClass(value, type) {
-    const normalized = value.toUpperCase().replace(/ /g, '-').toLowerCase();
-    return `editable badge-style badge-${normalized}`;
+// --- COLOR CONSTANTS ---
+const STATUS_COLORS = {
+    "NOT STARTED": "#6b7280",
+    "IN PROGRESS": "#3b82f6",
+    "COMPLETED": "#22c55e",
+    "ON HOLD": "#f59e0b",
+    "CANCELLED": "#ef4444"
+};
+
+const PRIORITY_COLORS = {
+    "LOW": "#22c55e",
+    "MEDIUM": "#f59e0b",
+    "HIGH": "#ef4444"
+};
+
+// --- DATE FORMATTING ---
+function formatDateDisplay(dateStr) {
+    if (!dateStr) return "";
+    const [year, month, day] = dateStr.split("-");
+    return `${day}/${month}/${year}`;
 }
 
-// --- NOTIFICATION TRACKING (NEW) ---
-let notificationCount = 0;
+// --- TIME FORMATTING ---
+function formatTime12Hour(time24) {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(':');
+    let hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 || 12;
+    return `${hour}:${minutes} ${ampm}`;
+}
 
+// --- BADGE HELPER ---
+function getBadgeClass(value) {
+    const normalized = value.toUpperCase().replace(/ /g, '-').toLowerCase();
+    return `badge badge-${normalized}`;
+}
+
+// --- NOTIFICATION BUBBLE (SIMPLE DOT ONLY) ---
 function updateNotificationBubble() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    let count = 0;
-    
-    // Count upcoming reminders (today and tomorrow)
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
+    
+    let hasNotifications = false;
     
     data.reminders.forEach(r => {
         if (r.date) {
             const d = new Date(r.date);
             d.setHours(0, 0, 0, 0);
-            if (d >= today && d <= tomorrow) count++;
+            if (d >= today && d <= tomorrow) hasNotifications = true;
         }
     });
     
-    // Count overdue tasks
     data.tasks.forEach(t => {
         if (t.date && t.status !== 'COMPLETED' && t.status !== 'CANCELLED') {
             const d = new Date(t.date);
             d.setHours(0, 0, 0, 0);
-            if (d < today) count++;
+            if (d < today) hasNotifications = true;
         }
     });
     
-    notificationCount = count;
-    const bubble = document.getElementById('notificationBubble');
+    const bubble = document.querySelector('.notification-bubble');
     if (bubble) {
-        if (count > 0) {
-            bubble.innerText = count > 99 ? '99+' : count;
+        if (hasNotifications) {
             bubble.classList.add('show');
         } else {
             bubble.classList.remove('show');
@@ -73,7 +99,7 @@ function updateNotificationBubble() {
     }
 }
 
-// --- HABIT HELPERS (NEW) ---
+// --- HABIT HELPERS ---
 function calculateStreak(completedDates) {
     if (!completedDates || completedDates.length === 0) return 0;
     
@@ -114,49 +140,19 @@ function calculateWeekProgress(completedDates) {
     return Math.min((recentCompletions / 7) * 100, 100);
 }
 
-// --- COLOR CONSTANTS ---
-const STATUS_COLORS = {
-    "NOT STARTED": "#6b7280",
-    "IN PROGRESS": "#3b82f6",
-    "COMPLETED": "#22c55e",
-    "ON HOLD": "#f59e0b",
-    "CANCELLED": "#ef4444"
-};
-
-const PRIORITY_COLORS = {
-    "LOW": "#22c55e",
-    "MEDIUM": "#f59e0b",
-    "HIGH": "#ef4444"
-};
-
-// --- DATE FORMATTING ---
-function formatDateDisplay(dateStr) {
-    if (!dateStr) return "";
-    const [year, month, day] = dateStr.split("-");
-    return `${day}/${month}/${year}`;
-}
-
-// --- TIME FORMATTING (12-hour format) ---
-function formatTime12Hour(time24) {
-    if (!time24) return "";
-    const [hours, minutes] = time24.split(':');
-    let hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    hour = hour % 12 || 12;
-    return `${hour}:${minutes} ${ampm}`;
-}
-
-// --- RENDER ---
+// --- RENDER ALL ---
 function renderAll() {
     renderTasks();
     renderGoals();
     renderReminders();
     renderHabits();
     renderUpcoming();
+    renderUpcomingMobile();
     renderCalendar(calCurrentMonth, calCurrentYear);
-    updateNotificationBubble(); // NEW
+    updateNotificationBubble();
 }
 
+// --- RENDER TASKS ---
 function renderTasks() {
     const container = document.getElementById("taskListContainer");
     container.innerHTML = "";
@@ -176,15 +172,14 @@ function renderTasks() {
         div.className = "list-row grid-tasks";
         const displayTag = (item.tags && item.tags.length > 0) ? item.tags[0] : "";
         const statusUpper = (item.status || 'not started').toUpperCase();
-        const statusColor = STATUS_COLORS[statusUpper] || "#6b7280";
         
         div.innerHTML = `
-            <span class="${getBadgeClass(statusUpper, 'status')}" style="color: ${statusColor};" onclick="editSelect(this, 'tasks', ${index}, 'status', STATUS_OPTS)">${statusUpper}</span>
-            <span class="editable" contenteditable="true" onblur="editText(this, 'tasks', ${index}, 'text')">${item.text}</span>
-            <span class="${getBadgeClass(displayTag, 'tag')}" onclick="editSelect(this, 'tasks', ${index}, 'tags', TAG_OPTS)">${displayTag}</span>
-            <span class="editable" onclick="editDate(this, 'tasks', ${index}, 'date')">${formatDateDisplay(item.date)}</span>
+            <span class="${getBadgeClass(statusUpper)}">${statusUpper}</span>
+            <span style="word-break: break-word;">${item.text}</span>
+            <span class="${getBadgeClass(displayTag)}">${displayTag}</span>
+            <span>${formatDateDisplay(item.date)}</span>
             <div class="row-actions">
-                <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
+                <div class="action-icon edit" onclick="openEditModal('tasks', ${index})" title="Edit">
                     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </div>
                 <div class="action-icon delete" onclick="deleteItemDirect('tasks', ${index})" title="Delete">
@@ -196,6 +191,7 @@ function renderTasks() {
     });
 }
 
+// --- RENDER GOALS ---
 function renderGoals() {
     const container = document.getElementById("goalListContainer");
     container.innerHTML = "";
@@ -214,14 +210,13 @@ function renderGoals() {
         const div = document.createElement("div");
         div.className = "list-row grid-goals";
         const priorityUpper = (item.priority || 'medium').toUpperCase();
-        const priorityColor = PRIORITY_COLORS[priorityUpper] || "#f59e0b";
         
         div.innerHTML = `
-            <span class="editable" contenteditable="true" onblur="editText(this, 'goals', ${index}, 'text')">${item.text}</span>
-            <span class="${getBadgeClass(priorityUpper, 'priority')}" style="color: ${priorityColor};" onclick="editSelect(this, 'goals', ${index}, 'priority', PRIORITY_OPTS)">${priorityUpper}</span>
-            <span class="editable" onclick="editDate(this, 'goals', ${index}, 'date')">${formatDateDisplay(item.date)}</span>
+            <span style="word-break: break-word;">${item.text}</span>
+            <span class="${getBadgeClass(priorityUpper)}">${priorityUpper}</span>
+            <span>${formatDateDisplay(item.date)}</span>
             <div class="row-actions">
-                <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
+                <div class="action-icon edit" onclick="openEditModal('goals', ${index})" title="Edit">
                     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </div>
                 <div class="action-icon delete" onclick="deleteItemDirect('goals', ${index})" title="Delete">
@@ -233,6 +228,7 @@ function renderGoals() {
     });
 }
 
+// --- RENDER REMINDERS ---
 function renderReminders() {
     const container = document.getElementById("reminderListContainer");
     container.innerHTML = "";
@@ -251,13 +247,14 @@ function renderReminders() {
         const div = document.createElement("div");
         div.className = "list-row grid-reminders";
         const time12 = formatTime12Hour(item.time);
+        const repeatUpper = (item.repeat || 'NONE').toUpperCase();
         div.innerHTML = `
-            <span class="editable" contenteditable="true" onblur="editText(this, 'reminders', ${index}, 'text')">${item.text}</span>
-            <span class="editable" onclick="editDate(this, 'reminders', ${index}, 'date')">${formatDateDisplay(item.date)}</span>
-            <span class="editable" onclick="editTime(this, 'reminders', ${index}, 'time')" data-time24="${item.time || ''}">${time12}</span>
-            <span class="editable" onclick="editSelect(this, 'reminders', ${index}, 'repeat', REPEAT_OPTS)">${item.repeat || 'NONE'}</span>
+            <span style="word-break: break-word;">${item.text}</span>
+            <span>${formatDateDisplay(item.date)}</span>
+            <span>${time12}</span>
+            <span class="${getBadgeClass(repeatUpper)}">${repeatUpper}</span>
             <div class="row-actions">
-                <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
+                <div class="action-icon edit" onclick="openEditModal('reminders', ${index})" title="Edit">
                     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </div>
                 <div class="action-icon delete" onclick="deleteItemDirect('reminders', ${index})" title="Delete">
@@ -269,6 +266,7 @@ function renderReminders() {
     });
 }
 
+// --- RENDER HABITS ---
 function renderHabits() {
     const container = document.getElementById("habitListContainer");
     if (!container) return;
@@ -293,18 +291,17 @@ function renderHabits() {
         const completedDates = item.completed_dates || [];
         const isCompletedToday = completedDates.includes(today);
         
-        // Calculate streak and progress (NEW)
         const streak = calculateStreak(completedDates);
         const weekProgress = calculateWeekProgress(completedDates);
         
         div.innerHTML = `
             <div class="habit-content">
-                <span class="editable" contenteditable="true" onblur="editText(this, 'habits', ${index}, 'text')">${item.text}</span>
+                <div class="habit-text">${item.text}</div>
                 <div class="habit-progress">
                     <div class="habit-progress-bar" style="width: ${weekProgress}%"></div>
                 </div>
             </div>
-            <span class="editable" onclick="editSelect(this, 'habits', ${index}, 'frequency', FREQUENCY_OPTS)">${item.frequency || 'Daily'}</span>
+            <span class="${getBadgeClass(item.frequency || 'Daily')}">${item.frequency || 'Daily'}</span>
             <button class="habit-check ${isCompletedToday ? 'completed' : ''}" onclick="toggleHabitToday(${index})">
                 ${isCompletedToday ? '✓' : '○'}
             </button>
@@ -312,7 +309,7 @@ function renderHabits() {
                 🔥 ${streak} day${streak !== 1 ? 's' : ''}
             </div>
             <div class="row-actions">
-                <div class="action-icon edit" onclick="triggerEdit(this.parentElement.parentElement)" title="Edit">
+                <div class="action-icon edit" onclick="openEditModal('habits', ${index})" title="Edit">
                     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </div>
                 <div class="action-icon delete" onclick="deleteItemDirect('habits', ${index})" title="Delete">
@@ -324,9 +321,21 @@ function renderHabits() {
     });
 }
 
+// --- RENDER UPCOMING ---
 function renderUpcoming() {
-    const container = document.getElementById("upcomingList");
-    const titleEl = document.getElementById("upcomingTitle");
+    renderUpcomingList("upcomingList", "upcomingTitle");
+}
+
+function renderUpcomingMobile() {
+    renderUpcomingList("upcomingListMobile", "upcomingTitleMobile");
+}
+
+function renderUpcomingList(containerId, titleId) {
+    const container = document.getElementById(containerId);
+    const titleEl = document.getElementById(titleId);
+    
+    if (!container || !titleEl) return;
+    
     container.innerHTML = "";
 
     const today = new Date();
@@ -370,6 +379,7 @@ function renderUpcoming() {
 function resetFilter() {
     filterDate = null;
     renderUpcoming();
+    renderUpcomingMobile();
     renderCalendar(calCurrentMonth, calCurrentYear);
 }
 
@@ -388,8 +398,20 @@ function changeMonth(dir) {
 }
 
 function renderCalendar(month, year) {
-    const container = document.getElementById("calDays");
-    document.getElementById("calMonthYear").innerText = `${MONTH_NAMES[month]} ${year}`;
+    renderCalendarGrid("calDays", "calMonthYear", month, year);
+    renderCalendarGrid("calDaysMobile", "calMonthYearMobile", month, year);
+}
+
+function renderCalendarGrid(containerId, titleId, month, year) {
+    const container = document.getElementById(containerId);
+    const titleEl = document.getElementById(titleId);
+    
+    if (!container) return;
+    
+    if (titleEl) {
+        titleEl.innerText = `${MONTH_NAMES[month]} ${year}`;
+    }
+    
     container.innerHTML = "";
 
     const firstDay = new Date(year, month, 1).getDay();
@@ -417,6 +439,7 @@ function renderCalendar(month, year) {
         cell.onclick = () => {
             filterDate = dateStr;
             renderUpcoming();
+            renderUpcomingMobile();
             renderCalendar(month, year);
             setFormDate(dateStr);
         };
@@ -433,12 +456,13 @@ function setFormDate(dateStr) {
     }
 }
 
-// --- ADD ---
+// --- ADD ITEMS ---
 function addItem(type) {
     if (type === "tasks") {
         const text = document.getElementById("taskInput").value.toUpperCase();
         const tag = document.getElementById("taskTag").value;
         const date = document.getElementById("taskDate").value;
+        
         if (!text) {
             alert("Task text is required!");
             return;
@@ -463,6 +487,7 @@ function addItem(type) {
         const text = document.getElementById("goalInput").value.toUpperCase();
         const priority = document.getElementById("goalPriority").value;
         const date = document.getElementById("goalDate").value;
+        
         if (!text) {
             alert("Goal text is required!");
             return;
@@ -488,6 +513,7 @@ function addItem(type) {
         const date = document.getElementById("remDate").value;
         const time = document.getElementById("remTime").value;
         const repeat = document.getElementById("remRepeat").value;
+        
         if (!text) {
             alert("Reminder text is required!");
             return;
@@ -515,6 +541,7 @@ function addItem(type) {
     if (type === "habits") {
         const text = document.getElementById("habitInput")?.value.toUpperCase();
         const frequency = document.getElementById("habitFrequency")?.value || "Daily";
+        
         if (!text) {
             alert("Habit text is required!");
             return;
@@ -531,143 +558,184 @@ function addItem(type) {
     }
 }
 
-// --- UPDATE ---
-function updateItemInDB(type, id, field, value) {
-    let url = "";
-    if (type === "tasks") url = `/updateTask/${id}`;
-    if (type === "goals") url = `/updateGoal/${id}`;
-    if (type === "reminders") url = `/updateReminder/${id}`;
-    if (type === "habits") url = `/updateHabit/${id}`;
-
-    fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value })
-    })
-    .then(response => {
-        if (!response.ok) {
-            console.error("Update failed");
-            alert("Failed to update item");
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log("Update successful:", data);
-    })
-    .catch(error => {
-        console.error("Error updating:", error);
-        alert("Error connecting to server");
-    });
-}
-
-// --- EDIT ---
-function editText(el, type, index, field) {
-    const newValue = el.innerText;
-    data[type][index][field] = newValue;
-    const id = data[type][index].id;
-    updateItemInDB(type, id, field, newValue);
-    renderUpcoming();
-}
-
-function editSelect(el, type, index, field, options) {
-    if (el.querySelector("select")) return;
+// --- EDIT MODAL ---
+function openEditModal(type, index) {
+    currentEditModal = { type, index };
+    const item = data[type][index];
     
-    let current = data[type][index][field];
-    if (field === "tags" && Array.isArray(current)) {
-        current = current.length > 0 ? current[0] : "";
+    const modal = document.getElementById("editModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalBody = document.getElementById("modalBody");
+    
+    modalTitle.innerText = `EDIT ${type.toUpperCase().slice(0, -1)}`;
+    
+    let formHTML = '';
+    
+    if (type === 'tasks') {
+        const displayTag = (item.tags && item.tags.length > 0) ? item.tags[0] : 'PERSONAL';
+        formHTML = `
+            <div class="form-group">
+                <label class="form-label">TASK TEXT</label>
+                <input type="text" id="editText" value="${item.text}" class="input-text" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">STATUS</label>
+                <select id="editStatus" class="input-text">
+                    ${STATUS_OPTS.map(opt => `<option value="${opt}" ${opt === item.status ? 'selected' : ''}>${opt}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">TAG</label>
+                <select id="editTag" class="input-text">
+                    ${TAG_OPTS.map(opt => `<option value="${opt}" ${opt === displayTag ? 'selected' : ''}>${opt}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">DATE</label>
+                <input type="date" id="editDate" value="${item.date || ''}" class="input-text" required>
+            </div>
+        `;
+    } else if (type === 'goals') {
+        formHTML = `
+            <div class="form-group">
+                <label class="form-label">GOAL TEXT</label>
+                <input type="text" id="editText" value="${item.text}" class="input-text" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">PRIORITY</label>
+                <select id="editPriority" class="input-text">
+                    ${PRIORITY_OPTS.map(opt => `<option value="${opt}" ${opt === item.priority ? 'selected' : ''}>${opt}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">DATE</label>
+                <input type="date" id="editDate" value="${item.date || ''}" class="input-text" required>
+            </div>
+        `;
+    } else if (type === 'reminders') {
+        formHTML = `
+            <div class="form-group">
+                <label class="form-label">REMINDER TEXT</label>
+                <input type="text" id="editText" value="${item.text}" class="input-text" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">DATE</label>
+                <input type="date" id="editDate" value="${item.date || ''}" class="input-text" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">TIME</label>
+                <input type="time" id="editTime" value="${item.time || ''}" class="input-text" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">REPEAT</label>
+                <select id="editRepeat" class="input-text">
+                    ${REPEAT_OPTS.map(opt => `<option value="${opt}" ${opt === item.repeat ? 'selected' : ''}>${opt}</option>`).join('')}
+                </select>
+            </div>
+        `;
+    } else if (type === 'habits') {
+        formHTML = `
+            <div class="form-group">
+                <label class="form-label">HABIT TEXT</label>
+                <input type="text" id="editText" value="${item.text}" class="input-text" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">FREQUENCY</label>
+                <select id="editFrequency" class="input-text">
+                    ${FREQUENCY_OPTS.map(opt => `<option value="${opt}" ${opt === item.frequency ? 'selected' : ''}>${opt}</option>`).join('')}
+                </select>
+            </div>
+        `;
     }
     
-    el.innerHTML = "";
-    const select = document.createElement("select");
-    options.forEach((opt) => {
-        const o = document.createElement("option");
-        o.value = opt;
-        o.innerText = opt;
-        if (opt === current || opt.toLowerCase() === current.toLowerCase()) o.selected = true;
-        select.appendChild(o);
+    modalBody.innerHTML = `<form class="modal-form" onsubmit="event.preventDefault(); saveEditModal();">${formHTML}</form>`;
+    modal.classList.add('active');
+}
+
+function closeEditModal() {
+    const modal = document.getElementById("editModal");
+    if (modal) modal.classList.remove('active');
+    currentEditModal = null;
+}
+
+function saveEditModal() {
+    if (!currentEditModal) return;
+    
+    const { type, index } = currentEditModal;
+    const item = data[type][index];
+    const id = item.id;
+    
+    let updateData = {};
+    let url = '';
+    
+    if (type === 'tasks') {
+        const text = document.getElementById('editText').value.trim().toUpperCase();
+        const status = document.getElementById('editStatus').value;
+        const tag = document.getElementById('editTag').value;
+        const date = document.getElementById('editDate').value;
+        
+        if (!text || !date) {
+            alert('All fields are required!');
+            return;
+        }
+        
+        updateData = { text, status, tags: tag, date };
+        url = `/updateTask/${id}`;
+    } else if (type === 'goals') {
+        const text = document.getElementById('editText').value.trim().toUpperCase();
+        const priority = document.getElementById('editPriority').value;
+        const date = document.getElementById('editDate').value;
+        
+        if (!text || !date) {
+            alert('All fields are required!');
+            return;
+        }
+        
+        updateData = { text, priority, date };
+        url = `/updateGoal/${id}`;
+    } else if (type === 'reminders') {
+        const text = document.getElementById('editText').value.trim().toUpperCase();
+        const date = document.getElementById('editDate').value;
+        const time = document.getElementById('editTime').value;
+        const repeat = document.getElementById('editRepeat').value;
+        
+        if (!text || !date || !time) {
+            alert('All fields are required!');
+            return;
+        }
+        
+        updateData = { text, date, time, repeat };
+        url = `/updateReminder/${id}`;
+    } else if (type === 'habits') {
+        const text = document.getElementById('editText').value.trim().toUpperCase();
+        const frequency = document.getElementById('editFrequency').value;
+        
+        if (!text) {
+            alert('Habit text is required!');
+            return;
+        }
+        
+        updateData = { text, frequency };
+        url = `/updateHabit/${id}`;
+    }
+    
+    fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+    })
+    .then(response => response.json())
+    .then(() => {
+        if (type === 'tasks') loadTasksFromDB();
+        if (type === 'goals') loadGoalsFromDB();
+        if (type === 'reminders') loadRemindersFromDB();
+        if (type === 'habits') loadHabitsFromDB();
+        closeEditModal();
+    })
+    .catch(error => {
+        console.error('Update error:', error);
+        alert('Error updating item');
     });
-    
-    const save = () => {
-        const newValue = select.value;
-        if (field === "tags") {
-            data[type][index][field] = [newValue];
-        } else {
-            data[type][index][field] = newValue;
-        }
-        const id = data[type][index].id;
-        updateItemInDB(type, id, field, newValue);
-        renderAll();
-    };
-    
-    select.addEventListener("blur", save);
-    select.addEventListener("change", save);
-    el.appendChild(select);
-    select.focus();
-}
-
-function editDate(el, type, index, field) {
-    if (el.querySelector("input")) return;
-    const current = data[type][index][field];
-    el.innerHTML = "";
-    const input = document.createElement("input");
-    input.type = "date";
-    input.value = current || "";
-    const save = () => {
-        if (input.value) {
-            const newValue = input.value;
-            const oldDate = data[type][index][field];
-            data[type][index][field] = newValue;
-            const id = data[type][index].id;
-            
-            // Clear notification flag for reminders when date is edited
-            if (type === "reminders" && typeof notificationManager !== 'undefined') {
-                // Clear flag for old date
-                if (oldDate) {
-                    notificationManager.clearNotificationFlag(id, oldDate);
-                }
-                // Clear flag for new date
-                notificationManager.clearNotificationFlag(id, newValue);
-                console.log(`🔄 Cleared notification flag for reminder ID: ${id} - can notify again`);
-            }
-            
-            updateItemInDB(type, id, "date", newValue);
-        }
-        renderAll();
-    };
-    input.addEventListener("blur", save);
-    input.addEventListener("change", save);
-    el.appendChild(input);
-    input.focus();
-}
-
-function editTime(el, type, index, field) {
-    if (el.querySelector("input")) return;
-    const current = data[type][index][field];
-    el.innerHTML = "";
-    const input = document.createElement("input");
-    input.type = "time";
-    input.value = current || "";
-    const save = () => {
-        if (input.value) {
-            const newValue = input.value;
-            data[type][index][field] = newValue;
-            const id = data[type][index].id;
-            
-            // Clear notification flag for reminders when time is edited
-            if (type === "reminders" && typeof notificationManager !== 'undefined') {
-                const reminderDate = data[type][index].date;
-                notificationManager.clearNotificationFlag(id, reminderDate);
-                console.log(`🔄 Cleared notification flag for reminder ID: ${id} - can notify again`);
-            }
-            
-            updateItemInDB(type, id, "time", newValue);
-        }
-        renderAll();
-    };
-    input.addEventListener("blur", save);
-    input.addEventListener("change", save);
-    el.appendChild(input);
-    input.focus();
 }
 
 // --- HABIT TOGGLE ---
@@ -679,23 +747,6 @@ function toggleHabitToday(index) {
         .then(response => response.json())
         .then(() => loadHabitsFromDB())
         .catch(error => console.error("Error toggling habit:", error));
-}
-
-// --- UPDATE HABIT ---
-function updateHabit(id, field, value) {
-    fetch(`/updateHabit/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value })
-    })
-    .then(response => {
-        if (!response.ok) alert("Failed to update habit");
-        return response.json();
-    })
-    .catch(error => {
-        console.error("Error updating habit:", error);
-        alert("Error connecting to server");
-    });
 }
 
 // --- DELETE ---
@@ -728,17 +779,6 @@ function deleteItemDirect(type, index) {
         });
 }
 
-function triggerEdit(row) {
-    const firstEditable = row.querySelector('.editable');
-    if (firstEditable) {
-        if (firstEditable.hasAttribute('contenteditable')) {
-            firstEditable.focus();
-        } else {
-            firstEditable.click();
-        }
-    }
-}
-
 // --- TABS ---
 function switchTab(tabName) {
     document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
@@ -747,7 +787,30 @@ function switchTab(tabName) {
     document.getElementById("tab-" + tabName).classList.add("active");
 }
 
-// --- LOAD ---
+// --- MOBILE SIDEBAR ---
+function toggleMobileSidebar() {
+    const overlay = document.getElementById('sidebarOverlay');
+    const panel = document.getElementById('sidebarPanel');
+    
+    if (overlay && panel) {
+        if (overlay.classList.contains('active')) {
+            overlay.classList.remove('active');
+            panel.classList.remove('active');
+        } else {
+            overlay.classList.add('active');
+            panel.classList.add('active');
+        }
+    }
+}
+
+function closeMobileSidebar() {
+    const overlay = document.getElementById('sidebarOverlay');
+    const panel = document.getElementById('sidebarPanel');
+    if (overlay) overlay.classList.remove('active');
+    if (panel) panel.classList.remove('active');
+}
+
+// --- LOAD DATA ---
 function loadTasksFromDB() {
     isLoading.tasks = true;
     renderTasks();
@@ -766,7 +829,8 @@ function loadTasksFromDB() {
             isLoading.tasks = false;
             renderTasks();
             renderUpcoming();
-            updateNotificationBubble(); // NEW
+            renderUpcomingMobile();
+            updateNotificationBubble();
         })
         .catch(err => {
             console.error("Error loading tasks:", err);
@@ -789,6 +853,7 @@ function loadGoalsFromDB() {
             isLoading.goals = false;
             renderGoals();
             renderUpcoming();
+            renderUpcomingMobile();
         })
         .catch(err => {
             console.error("Error loading goals:", err);
@@ -808,7 +873,8 @@ function loadRemindersFromDB() {
             isLoading.reminders = false;
             renderReminders();
             renderUpcoming();
-            updateNotificationBubble(); // NEW
+            renderUpcomingMobile();
+            updateNotificationBubble();
         })
         .catch(err => {
             console.error("Error loading reminders:", err);
@@ -843,114 +909,11 @@ loadGoalsFromDB();
 loadRemindersFromDB();
 loadHabitsFromDB();
 
-// --- MOBILE SIDEBAR FUNCTIONS (NEW) ---
-function toggleMobileSidebar() {
-    const overlay = document.getElementById('sidebarOverlay');
-    const panel = document.getElementById('sidebarPanel');
-    
-    if (overlay && panel) {
-        if (overlay.classList.contains('active')) {
-            overlay.classList.remove('active');
-            panel.classList.remove('active');
-        } else {
-            overlay.classList.add('active');
-            panel.classList.add('active');
-        }
-    }
-}
-
-function closeMobileSidebar() {
-    const overlay = document.getElementById('sidebarOverlay');
-    const panel = document.getElementById('sidebarPanel');
-    if (overlay) overlay.classList.remove('active');
-    if (panel) panel.classList.remove('active');
-}
-
-// --- NOTIFICATION PANEL FUNCTIONS (NEW) ---
-function toggleNotificationPanel() {
-    const panel = document.getElementById('notificationPanel');
-    if (panel) {
-        if (panel.classList.contains('active')) {
-            panel.classList.remove('active');
-        } else {
-            renderNotificationPanel();
-            panel.classList.add('active');
-        }
-    }
-}
-
-function closeNotificationPanel() {
-    const panel = document.getElementById('notificationPanel');
-    if (panel) panel.classList.remove('active');
-}
-
-function renderNotificationPanel() {
-    const content = document.getElementById('notificationPanelContent');
-    if (!content) return;
-    
-    content.innerHTML = '';
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    
-    let notifications = [];
-    
-    // Upcoming reminders
-    data.reminders.forEach(r => {
-        if (r.date) {
-            const d = new Date(r.date);
-            d.setHours(0, 0, 0, 0);
-            if (d >= today && d <= tomorrow) {
-                notifications.push({
-                    type: 'REMINDER',
-                    text: r.text,
-                    date: formatDateDisplay(r.date),
-                    time: r.time ? formatTime12Hour(r.time) : ''
-                });
-            }
-        }
-    });
-    
-    // Overdue tasks
-    data.tasks.forEach(t => {
-        if (t.date && t.status !== 'COMPLETED' && t.status !== 'CANCELLED') {
-            const d = new Date(t.date);
-            d.setHours(0, 0, 0, 0);
-            if (d < today) {
-                notifications.push({
-                    type: 'OVERDUE TASK',
-                    text: t.text,
-                    date: formatDateDisplay(t.date)
-                });
-            }
-        }
-    });
-    
-    if (notifications.length === 0) {
-        content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No notifications</div>';
-        return;
-    }
-    
-    notifications.forEach(n => {
-        const div = document.createElement('div');
-        div.className = 'notification-item';
-        div.innerHTML = `
-            <div class="notification-item-type">${n.type}</div>
-            <div class="notification-item-text">${n.text}</div>
-            <div class="notification-item-date">${n.date}${n.time ? ' at ' + n.time : ''}</div>
-        `;
-        content.appendChild(div);
-    });
-}
-
-// Close notification panel when clicking outside
+// Close modal when clicking outside
 document.addEventListener('click', (e) => {
-    const panel = document.getElementById('notificationPanel');
-    const icon = document.getElementById('notificationIcon');
-    if (panel && icon && !panel.contains(e.target) && !icon.contains(e.target)) {
-        closeNotificationPanel();
+    const modal = document.getElementById('editModal');
+    if (e.target === modal) {
+        closeEditModal();
     }
 });
 

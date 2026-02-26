@@ -6,22 +6,19 @@
         <title>HabitFlow</title>
         <link rel="stylesheet" href="../static/tasks.css">
         <link rel="icon" href="{{ url_for('static', filename='checklist_16688556.png') }}" type="image/png">
-        <link rel="stylesheet" href="../static/notifications.css">
     </head>
     <body>
         <div class="navbar">
             <span class="welcome-text">Welcome, {{ username }}!</span>
             <div class="navbar-actions">
-                <!-- Notification Icon (NEW) -->
-                <div class="notification-icon" id="notificationIcon" onclick="toggleNotificationPanel()">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                <div class="notification-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16">
+                    <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
                     </svg>
-                    <span class="notification-bubble" id="notificationBubble">0</span>
+                    <span class="notification-bubble"></span>
                 </div>
                 
-                <!-- Mobile Menu Toggle (NEW) -->
+                <!-- Mobile Menu Toggle -->
                 <div class="mobile-menu-toggle" onclick="toggleMobileSidebar()">
                     <svg viewBox="0 0 24 24">
                         <path d="M8 2v4"/>
@@ -55,14 +52,14 @@
                     </div>
                     <div class="list-container" id="taskListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="taskInput" class="input-text" placeholder="NEW TASK" required />
-                        <select id="taskTag" class="input-sm" required>
+                        <input type="text" id="taskInput" class="input-text" placeholder="NEW TASK" />
+                        <select id="taskTag" class="input-sm">
                             <option value="PROJECTS">PROJECTS</option>
                             <option value="HOMEWORK">HOMEWORK</option>
                             <option value="PERSONAL">PERSONAL</option>
                             <option value="WORK">WORK</option>
                         </select>
-                        <input type="date" id="taskDate" class="input-sm" required />
+                        <input type="date" id="taskDate" class="input-sm" />
                         <button class="add-btn" onclick="addItem('tasks')">ADD</button>
                     </div>
                 </div>
@@ -77,13 +74,13 @@
                     </div>
                     <div class="list-container" id="goalListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="goalInput" class="input-text" placeholder="NEW GOAL" required />
-                        <select id="goalPriority" class="input-sm" required>
+                        <input type="text" id="goalInput" class="input-text" placeholder="NEW GOAL" />
+                        <select id="goalPriority" class="input-sm">
                             <option value="LOW">LOW</option>
                             <option value="MEDIUM" selected>MEDIUM</option>
                             <option value="HIGH">HIGH</option>
                         </select>
-                        <input type="date" id="goalDate" class="input-sm" required />
+                        <input type="date" id="goalDate" class="input-sm" />
                         <button class="add-btn" onclick="addItem('goals')">ADD</button>
                     </div>
                 </div>
@@ -99,16 +96,16 @@
                     </div>
                     <div class="list-container" id="reminderListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="remInput" class="input-text" placeholder="NEW REMINDER" required />
-                        <select id="remRepeat" class="input-sm" required>
+                        <input type="text" id="remInput" class="input-text" placeholder="NEW REMINDER" />
+                        <select id="remRepeat" class="input-sm">
                             <option value="NONE">NO REPEAT</option>
                             <option value="DAILY">DAILY</option>
                             <option value="WEEKLY">WEEKLY</option>
                             <option value="BI-WEEKLY">BI-WEEKLY</option>
                             <option value="MONTHLY">MONTHLY</option>
                         </select>
-                        <input type="time" id="remTime" class="input-xs" value="09:00" required />
-                        <input type="date" id="remDate" class="input-sm" required />
+                        <input type="time" id="remTime" class="input-xs" value="09:00" />
+                        <input type="date" id="remDate" class="input-sm" />
                         <button class="add-btn" onclick="addItem('reminders')">ADD</button>
                     </div>
                 </div>
@@ -119,12 +116,13 @@
                         <span>HABIT</span>
                         <span>FREQUENCY</span>
                         <span>TODAY</span>
+                        <span>STREAK</span>
                         <span>ACTIONS</span>
                     </div>
                     <div class="list-container" id="habitListContainer"></div>
                     <div class="input-area">
-                        <input type="text" id="habitInput" class="input-text" placeholder="NEW HABIT" required />
-                        <select id="habitFrequency" class="input-sm" required>
+                        <input type="text" id="habitInput" class="input-text" placeholder="NEW HABIT" />
+                        <select id="habitFrequency" class="input-sm">
                             <option value="Daily" selected>DAILY</option>
                             <option value="Mon-Fri">MON-FRI</option>
                             <option value="Weekends">WEEKENDS</option>
@@ -135,6 +133,7 @@
                 </div>
             </main>
 
+            <!-- Desktop Sidebar -->
             <aside class="sidebar">
                 <div class="calendar-widget">
                     <div class="cal-header">
@@ -161,11 +160,12 @@
                     <div class="upcoming-list" id="upcomingList"></div>
                 </div>
             </aside>
+        </div>
 
-        <!-- Mobile Sidebar Overlay (NEW) -->
+        <!-- Mobile Sidebar Overlay -->
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
         
-        <!-- Mobile Sidebar Panel (NEW) -->
+        <!-- Mobile Sidebar Panel -->
         <div class="sidebar-panel" id="sidebarPanel">
             <div class="sidebar-close" onclick="closeMobileSidebar()">
                 <svg viewBox="0 0 24 24">
@@ -177,7 +177,7 @@
             <div class="calendar-widget">
                 <div class="cal-header">
                     <button class="cal-nav-btn" onclick="changeMonth(-1)">&lt;</button>
-                    <span id="calMonthYear">Loading...</span>
+                    <span id="calMonthYearMobile">Loading...</span>
                     <button class="cal-nav-btn" onclick="changeMonth(1)">&gt;</button>
                 </div>
                 <div class="cal-grid">
@@ -189,27 +189,32 @@
                     <div class="cal-day-name">Fr</div>
                     <div class="cal-day-name">Sa</div>
                 </div>
-                <div class="cal-grid" id="calDays"></div>
+                <div class="cal-grid" id="calDaysMobile"></div>
             </div>
 
             <div class="upcoming-widget" style="margin-top: 20px;">
                 <div class="section-header">
-                    <span class="section-title" id="upcomingTitle">UPCOMING (7 DAYS)</span>
+                    <span class="section-title" id="upcomingTitleMobile">UPCOMING (7 DAYS)</span>
                 </div>
-                <div class="upcoming-list" id="upcomingList"></div>
+                <div class="upcoming-list" id="upcomingListMobile"></div>
             </div>
         </div>
 
-        <!-- Notification Panel (NEW - Better than alert!) -->
-        <div class="notification-panel" id="notificationPanel">
-            <div class="notification-panel-header">
-                <span>NOTIFICATIONS</span>
-                <span class="notification-panel-close" onclick="closeNotificationPanel()">&times;</span>
+        <!-- Edit Modal -->
+        <div class="modal-overlay" id="editModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="modalTitle">EDIT ITEM</h2>
+                    <button class="modal-close" onclick="closeEditModal()">&times;</button>
+                </div>
+                <div id="modalBody"></div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeEditModal()">CANCEL</button>
+                    <button class="btn btn-primary" onclick="saveEditModal()">SAVE</button>
+                </div>
             </div>
-            <div class="notification-panel-content" id="notificationPanelContent"></div>
         </div>
 
         <script src="../static/tasks.js"></script>
-        <script src="../static/notifications.js"></script>
     </body>
 </html>
