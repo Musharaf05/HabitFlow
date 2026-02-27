@@ -74,64 +74,44 @@ function updateNotificationBubble() {
     let hasNotifications = false;
     let notificationCount = 0;
     
-    data.reminders.forEach(r => {
-        if (r.date) {
-            const d = new Date(r.date);
-            d.setHours(0, 0, 0, 0);
-            if (d >= today && d <= tomorrow) {
-                hasNotifications = true;
-                notificationCount++;
+    // Check reminders for today and tomorrow
+    if (data.reminders && data.reminders.length > 0) {
+        data.reminders.forEach(r => {
+            if (r.date) {
+                const d = new Date(r.date);
+                d.setHours(0, 0, 0, 0);
+                if (d.getTime() >= today.getTime() && d.getTime() <= tomorrow.getTime()) {
+                    hasNotifications = true;
+                    notificationCount++;
+                }
             }
-        }
-    });
+        });
+    }
     
-    data.tasks.forEach(t => {
-        if (t.date && t.status !== 'COMPLETED' && t.status !== 'CANCELLED') {
-            const d = new Date(t.date);
-            d.setHours(0, 0, 0, 0);
-            if (d < today) {
-                hasNotifications = true;
-                notificationCount++;
+    // Check overdue tasks
+    if (data.tasks && data.tasks.length > 0) {
+        data.tasks.forEach(t => {
+            if (t.date && t.status && t.status !== 'COMPLETED' && t.status !== 'CANCELLED') {
+                const d = new Date(t.date);
+                d.setHours(0, 0, 0, 0);
+                if (d.getTime() < today.getTime()) {
+                    hasNotifications = true;
+                    notificationCount++;
+                }
             }
-        }
-    });
+        });
+    }
     
     const bubble = document.querySelector('.notification-bubble');
     if (bubble) {
         if (hasNotifications) {
             bubble.classList.add('show');
-            // Send browser notification if permission granted
-            sendBrowserNotifications(notificationCount);
         } else {
             bubble.classList.remove('show');
         }
     }
-}
-
-// --- BROWSER NOTIFICATIONS ---
-function requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
-}
-
-function sendBrowserNotifications(count) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        // Only send once per session to avoid spam
-        const lastNotified = sessionStorage.getItem('lastNotified');
-        const now = Date.now();
-        
-        if (!lastNotified || (now - lastNotified) > 3600000) { // 1 hour
-            new Notification('HabitFlow Reminder', {
-                body: `You have ${count} pending notification${count > 1 ? 's' : ''}`,
-                icon: '/static/checklist_16688556.png',
-                badge: '/static/checklist_16688556.png',
-                tag: 'habitflow-notification',
-                requireInteraction: false
-            });
-            sessionStorage.setItem('lastNotified', now);
-        }
-    }
+    
+    console.log('Notification check:', { hasNotifications, notificationCount });
 }
 
 // --- HABIT HELPERS ---
@@ -851,13 +831,16 @@ function closeMobileSidebar() {
 // --- NOTIFICATION PANEL ---
 function toggleNotificationPanel() {
     const panel = document.getElementById('notificationPanel');
-    if (panel) {
-        if (panel.classList.contains('active')) {
-            panel.classList.remove('active');
-        } else {
-            renderNotificationPanel();
-            panel.classList.add('active');
-        }
+    if (!panel) {
+        console.error('Notification panel not found');
+        return;
+    }
+    
+    if (panel.classList.contains('active')) {
+        panel.classList.remove('active');
+    } else {
+        renderNotificationPanel();
+        panel.classList.add('active');
     }
 }
 
@@ -869,7 +852,11 @@ function closeNotificationPanel() {
 function renderNotificationPanel() {
     const content = document.getElementById('notificationPanelContent');
     const clearBtn = document.getElementById('clearAllBtn');
-    if (!content) return;
+    
+    if (!content) {
+        console.error('Notification panel content not found');
+        return;
+    }
     
     content.innerHTML = '';
     
@@ -881,41 +868,58 @@ function renderNotificationPanel() {
     let notifications = [];
     
     // Upcoming reminders (today and tomorrow)
-    data.reminders.forEach(r => {
-        if (r.date) {
-            const d = new Date(r.date);
-            d.setHours(0, 0, 0, 0);
-            if (d >= today && d <= tomorrow) {
-                notifications.push({
-                    type: 'REMINDER',
-                    text: r.text,
-                    date: formatDateDisplay(r.date),
-                    time: r.time ? formatTime12Hour(r.time) : '',
-                    isOverdue: false,
-                    id: r.id,
-                    itemType: 'reminder'
-                });
+    if (data.reminders && Array.isArray(data.reminders)) {
+        data.reminders.forEach(r => {
+            if (r && r.date) {
+                try {
+                    const d = new Date(r.date);
+                    d.setHours(0, 0, 0, 0);
+                    if (d.getTime() >= today.getTime() && d.getTime() <= tomorrow.getTime()) {
+                        notifications.push({
+                            type: 'REMINDER',
+                            text: r.text || 'Untitled',
+                            date: formatDateDisplay(r.date),
+                            time: r.time ? formatTime12Hour(r.time) : '',
+                            isOverdue: false,
+                            id: r.id,
+                            itemType: 'reminder'
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error parsing reminder date:', e);
+                }
             }
-        }
-    });
+        });
+    }
     
     // Overdue tasks
-    data.tasks.forEach(t => {
-        if (t.date && t.status !== 'COMPLETED' && t.status !== 'CANCELLED') {
-            const d = new Date(t.date);
-            d.setHours(0, 0, 0, 0);
-            if (d < today) {
-                notifications.push({
-                    type: 'OVERDUE TASK',
-                    text: t.text,
-                    date: formatDateDisplay(t.date),
-                    isOverdue: true,
-                    id: t.id,
-                    itemType: 'task'
-                });
+    if (data.tasks && Array.isArray(data.tasks)) {
+        data.tasks.forEach(t => {
+            if (t && t.date) {
+                const status = (t.status || '').toUpperCase();
+                if (status !== 'COMPLETED' && status !== 'CANCELLED') {
+                    try {
+                        const d = new Date(t.date);
+                        d.setHours(0, 0, 0, 0);
+                        if (d.getTime() < today.getTime()) {
+                            notifications.push({
+                                type: 'OVERDUE TASK',
+                                text: t.text || 'Untitled',
+                                date: formatDateDisplay(t.date),
+                                isOverdue: true,
+                                id: t.id,
+                                itemType: 'task'
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Error parsing task date:', e);
+                    }
+                }
             }
-        }
-    });
+        });
+    }
+    
+    console.log('Rendering notifications:', notifications.length);
     
     if (notifications.length === 0) {
         content.innerHTML = '<div class="notification-empty">✓ All caught up!<br><span style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; display: block;">No pending notifications</span></div>';
@@ -951,38 +955,93 @@ function clearAllNotifications() {
     today.setHours(0, 0, 0, 0);
     
     let updatePromises = [];
+    let tasksToUpdate = [];
     
-    // Mark all overdue tasks as completed
-    data.tasks.forEach((t) => {
-        if (t.date && t.status !== 'COMPLETED' && t.status !== 'CANCELLED') {
-            const d = new Date(t.date);
-            d.setHours(0, 0, 0, 0);
-            if (d < today) {
-                // Update status to completed
-                const promise = fetch(`/updateTask/${t.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        text: t.text,
-                        status: 'COMPLETED',
-                        tags: (t.tags && t.tags.length > 0) ? t.tags[0] : 'PERSONAL',
-                        date: t.date
-                    })
-                }).catch(err => console.error('Error updating task:', err));
-                updatePromises.push(promise);
+    // Find all overdue tasks
+    if (data.tasks && Array.isArray(data.tasks)) {
+        data.tasks.forEach((t) => {
+            if (t && t.date && t.id) {
+                const status = (t.status || 'NOT STARTED').toUpperCase();
+                if (status !== 'COMPLETED' && status !== 'CANCELLED') {
+                    try {
+                        const d = new Date(t.date);
+                        d.setHours(0, 0, 0, 0);
+                        if (d.getTime() < today.getTime()) {
+                            tasksToUpdate.push(t);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing task date:', e);
+                    }
+                }
             }
+        });
+    }
+    
+    console.log('Tasks to mark as completed:', tasksToUpdate.length);
+    
+    if (tasksToUpdate.length === 0) {
+        alert('No overdue tasks to clear!');
+        closeNotificationPanel();
+        return;
+    }
+    
+    // Update each task
+    tasksToUpdate.forEach(t => {
+        const updateData = {
+            text: t.text || 'Untitled',
+            status: 'COMPLETED',
+            date: t.date
+        };
+        
+        // Add tag if exists
+        if (t.tags) {
+            if (Array.isArray(t.tags) && t.tags.length > 0) {
+                updateData.tags = t.tags[0];
+            } else if (typeof t.tags === 'string') {
+                updateData.tags = t.tags;
+            }
+        } else {
+            updateData.tags = 'PERSONAL';
         }
+        
+        const promise = fetch(`/updateTask/${t.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Failed to update task:', t.id);
+            }
+            return response.json();
+        })
+        .catch(err => {
+            console.error('Error updating task:', err);
+        });
+        
+        updatePromises.push(promise);
     });
     
     // Wait for all updates, then reload
     Promise.all(updatePromises).then(() => {
-        loadTasksFromDB();
-        loadRemindersFromDB();
-        closeNotificationPanel();
-        
-        // Show success message
-        alert('✓ All notifications cleared!');
+        console.log('All tasks updated');
+        setTimeout(() => {
+            loadTasksFromDB();
+            loadRemindersFromDB();
+            closeNotificationPanel();
+            alert(`✓ Cleared ${tasksToUpdate.length} overdue task${tasksToUpdate.length > 1 ? 's' : ''}!`);
+        }, 500);
     });
+}
+
+// Test notification function (for debugging)
+function testNotification() {
+    console.log('Testing notification...');
+    console.log('Tasks:', data.tasks);
+    console.log('Reminders:', data.reminders);
+    updateNotificationBubble();
+    renderNotificationPanel();
+    toggleNotificationPanel();
 }
 
 // --- LOAD DATA ---
@@ -991,8 +1050,12 @@ function loadTasksFromDB() {
     renderTasks();
     
     fetch("/getTasks")
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to load tasks');
+            return res.json();
+        })
         .then(tasks => {
+            console.log('Loaded tasks:', tasks.length);
             data.tasks = tasks.map(t => ({ 
                 id: t.id, 
                 text: t.text, 
@@ -1019,8 +1082,12 @@ function loadGoalsFromDB() {
     renderGoals();
     
     fetch("/getGoals")
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to load goals');
+            return res.json();
+        })
         .then(goals => {
+            console.log('Loaded goals:', goals.length);
             data.goals = goals.map(g => ({
                 ...g,
                 priority: (g.priority || 'MEDIUM').toUpperCase()
@@ -1042,8 +1109,12 @@ function loadRemindersFromDB() {
     renderReminders();
     
     fetch("/getReminders")
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to load reminders');
+            return res.json();
+        })
         .then(rem => {
+            console.log('Loaded reminders:', rem.length);
             data.reminders = rem;
             isLoading.reminders = false;
             renderReminders();
@@ -1063,14 +1134,18 @@ function loadHabitsFromDB() {
     renderHabits();
     
     fetch("/getHabits")
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to load habits');
+            return res.json();
+        })
         .then(habits => {
+            console.log('Loaded habits:', habits.length);
             data.habits = habits;
             isLoading.habits = false;
             renderHabits();
         })
         .catch(err => {
-            console.log("Habits not loaded:", err);
+            console.log("Habits endpoint not available:", err);
             isLoading.habits = false;
             renderHabits();
         });
@@ -1084,10 +1159,12 @@ loadGoalsFromDB();
 loadRemindersFromDB();
 loadHabitsFromDB();
 
-// Request notification permission
+// Initialize notification system after a short delay to ensure data is loaded
 setTimeout(() => {
-    requestNotificationPermission();
-}, 2000);
+    if (typeof window.initNotificationSystem === 'function') {
+        window.initNotificationSystem();
+    }
+}, 1000);
 
 // Close modal when clicking outside
 document.addEventListener('click', (e) => {

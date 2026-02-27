@@ -40,7 +40,14 @@
                     <span class="notification-panel-close" onclick="closeNotificationPanel()">&times;</span>
                 </div>
             </div>
-            <div class="notification-panel-content" id="notificationPanelContent"></div>
+            <div class="notification-panel-content" id="notificationPanelContent">
+                <div class="notification-empty">Loading...</div>
+            </div>
+            <div style="padding: 10px; text-align: center; border-top: 1px solid var(--border-color); font-size: 0.7rem; color: var(--text-secondary);">
+                <button onclick="testNotification()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.65rem;">
+                    🔧 TEST NOTIFICATIONS
+                </button>
+            </div>
         </div>
         
         <div class="dashboard-container">
@@ -218,6 +225,7 @@
             </div>
         </div>
 
+        <script src="../static/notifications.js"></script>
         <script src="../static/tasks.js"></script>
     </body>
 </html>
