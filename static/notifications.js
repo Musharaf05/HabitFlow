@@ -1,11 +1,11 @@
-// --- NOTIFICATION SYSTEM WITH HISTORY ---
-class NotificationManager {
+// FCM-POWERED NOTIFICATION SYSTEM WITH RESCHEDULING FIX
+class FCMNotificationManager {
     constructor() {
         this.checkInterval = null;
         this.notifiedReminders = this.loadNotifiedReminders();
         this.notificationHistory = this.loadNotificationHistory();
         this.permissionGranted = false;
-        this.serviceWorkerRegistration = null;
+        this.fcmToken = null;
         this.init();
     }
 
@@ -16,13 +16,13 @@ class NotificationManager {
             if (stored) {
                 const data = JSON.parse(stored);
                 if (data.date === today) {
-                    return new Set(data.reminders);
+                    return new Map(data.reminders); // Changed to Map for better tracking
                 }
             }
         } catch (error) {
             console.error('Error loading notified reminders:', error);
         }
-        return new Set();
+        return new Map();
     }
 
     saveNotifiedReminders() {
@@ -30,7 +30,7 @@ class NotificationManager {
             const today = new Date().toISOString().split('T')[0];
             const data = {
                 date: today,
-                reminders: Array.from(this.notifiedReminders)
+                reminders: Array.from(this.notifiedReminders.entries()) // Convert Map to array
             };
             localStorage.setItem('notifiedReminders', JSON.stringify(data));
         } catch (error) {
@@ -72,55 +72,131 @@ class NotificationManager {
     }
 
     async init() {
-        console.log('🔔 Initializing Notification Manager...');
-        await this.registerServiceWorker();
-        await this.requestPermission();
+        console.log('🔔 Initializing FCM Notification Manager...');
+        
+        // Load Firebase dynamically
+        await this.loadFirebase();
+        
+        // Initialize FCM
+        await this.initializeFCM();
+        
+        // Start checking reminders
         this.startChecking();
         this.scheduleResetAtMidnight();
     }
 
-    async registerServiceWorker() {
-        if (!('serviceWorker' in navigator)) {
-            console.log('⚠️ Service Workers not supported');
+    async loadFirebase() {
+        try {
+            // Dynamically import Firebase
+            const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+            const { getMessaging, getToken, onMessage } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js');
+            
+            this.firebase = { initializeApp, getMessaging, getToken, onMessage };
+            console.log('✅ Firebase loaded');
+        } catch (error) {
+            console.error('❌ Error loading Firebase:', error);
+        }
+    }
+
+    async initializeFCM() {
+        if (!this.firebase) {
+            console.log('⚠️ Firebase not available, using fallback notifications');
+            this.permissionGranted = await this.requestBasicPermission();
             return;
         }
 
         try {
-            // Register with correct path
-            this.serviceWorkerRegistration = await navigator.serviceWorker.register('/static/service-worker.js', {
-                scope: '/'
-            });
+            // Initialize Firebase app
+            const firebaseConfig = {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_PROJECT_ID.appspot.com",
+                messagingSenderId: "YOUR_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            };
             
-            console.log('✅ Service Worker registered');
-            await navigator.serviceWorker.ready;
-            console.log('✅ Service Worker ready');
+            const app = this.firebase.initializeApp(firebaseConfig);
+            this.messaging = this.firebase.getMessaging(app);
             
+            // Request permission and get token
+            const permission = await Notification.requestPermission();
+            
+            if (permission === 'granted') {
+                this.permissionGranted = true;
+                console.log('✅ Notification permission granted');
+                
+                // Get FCM token
+                const token = await this.firebase.getToken(this.messaging, {
+                    vapidKey: 'YOUR_VAPID_KEY'
+                });
+                
+                if (token) {
+                    this.fcmToken = token;
+                    console.log('✅ FCM Token obtained');
+                    
+                    // Save token to backend
+                    await this.saveFCMToken(token);
+                    
+                    // Listen for foreground messages
+                    this.firebase.onMessage(this.messaging, (payload) => {
+                        this.handleForegroundMessage(payload);
+                    });
+                }
+            }
         } catch (error) {
-            console.error('❌ Service Worker registration failed:', error);
+            console.error('❌ FCM initialization error:', error);
+            // Fallback to basic notifications
+            this.permissionGranted = await this.requestBasicPermission();
         }
     }
 
-    async requestPermission() {
+    async requestBasicPermission() {
         if (!("Notification" in window)) {
             console.log("⚠️ Notifications not supported");
-            return;
+            return false;
         }
 
         if (Notification.permission === "granted") {
-            this.permissionGranted = true;
-            console.log('✅ Notification permission already granted');
+            return true;
         } else if (Notification.permission !== "denied") {
             const permission = await Notification.requestPermission();
-            this.permissionGranted = (permission === "granted");
-            
-            if (this.permissionGranted) {
-                console.log('✅ Notification permission granted');
-            } else {
-                console.log('❌ Notification permission denied');
-            }
-        } else {
-            console.log('❌ Notification permission was previously denied');
+            return permission === "granted";
         }
+        return false;
+    }
+
+    async saveFCMToken(token) {
+        try {
+            const response = await fetch('/save-fcm-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            
+            if (response.ok) {
+                console.log('✅ FCM token saved');
+            }
+        } catch (error) {
+            console.error('❌ Error saving FCM token:', error);
+        }
+    }
+
+    handleForegroundMessage(payload) {
+        console.log('📩 Foreground message:', payload);
+        
+        const notificationTitle = payload.notification.title;
+        const notificationOptions = {
+            body: payload.notification.body,
+            icon: '/static/checklist_16688556.png',
+            badge: '/static/checklist_16688556.png',
+            vibrate: [200, 100, 200],
+            tag: payload.data?.reminderId || 'habitflow-reminder',
+            requireInteraction: true
+        };
+        
+        new Notification(notificationTitle, notificationOptions);
+        this.playNotificationSound();
     }
 
     startChecking() {
@@ -140,7 +216,6 @@ class NotificationManager {
     }
 
     async checkReminders() {
-        // Wait for data to be available
         if (typeof data === 'undefined' || !data.reminders || data.reminders.length === 0) {
             return;
         }
@@ -152,7 +227,7 @@ class NotificationManager {
         console.log(`🕐 Checking at ${currentTime} on ${currentDate} - ${data.reminders.length} reminders`);
 
         for (const reminder of data.reminders) {
-            if (!reminder.date || !reminder.time) {
+            if (!reminder.date || !reminder.time || !reminder.id) {
                 continue;
             }
 
@@ -165,21 +240,27 @@ class NotificationManager {
                 continue;
             }
 
-            const reminderKey = `${reminder.id}-${currentDate}`;
+            // FIXED: Track by ID-Date-Time to allow rescheduling
+            const reminderKey = `${reminder.id}-${currentDate}-${reminderTime}`;
+            const lastNotified = this.notifiedReminders.get(reminderKey);
             
-            if (this.notifiedReminders.has(reminderKey)) {
+            // Check if we already notified for this exact time
+            if (lastNotified && lastNotified === reminderTime) {
+                console.log(`⏭️ Already notified for ${reminder.text} at ${reminderTime}`);
                 continue;
             }
 
             const timeMatch = currentTime === reminderTime;
             
             if (timeMatch) {
-                console.log(`🔔 ✓✓✓ TRIGGERING NOTIFICATION: "${reminder.text}"`);
+                console.log(`🔔 ✓✓✓ TRIGGERING: "${reminder.text}"`);
                 await this.triggerNotification(reminder);
-                this.notifiedReminders.add(reminderKey);
+                
+                // Store the time we notified at
+                this.notifiedReminders.set(reminderKey, reminderTime);
                 this.saveNotifiedReminders();
                 this.addToHistory(reminder);
-                console.log(`✅ Notification sent`);
+                console.log(`✅ Notification sent and tracked`);
             }
         }
     }
@@ -190,27 +271,31 @@ class NotificationManager {
         const body = `${reminder.text}\nScheduled for ${time12}`;
 
         try {
-            if (this.serviceWorkerRegistration) {
-                await this.serviceWorkerRegistration.showNotification(title, {
+            // Try FCM backend notification first
+            if (this.fcmToken) {
+                await fetch('/send-fcm-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        body,
+                        reminder_id: reminder.id
+                    })
+                });
+                console.log('✅ FCM notification sent via backend');
+            }
+            
+            // Also show local notification for immediate feedback
+            if (this.permissionGranted) {
+                new Notification(title, {
                     body: body,
                     icon: '/static/checklist_16688556.png',
                     badge: '/static/checklist_16688556.png',
                     vibrate: [200, 100, 200],
                     tag: `reminder-${reminder.id}`,
-                    requireInteraction: true,
-                    actions: [
-                        { action: 'open', title: 'Open App' },
-                        { action: 'close', title: 'Dismiss' }
-                    ]
+                    requireInteraction: true
                 });
-                console.log('✅ Service Worker notification displayed');
-            } else {
-                new Notification(title, {
-                    body: body,
-                    icon: '/static/checklist_16688556.png',
-                    requireInteraction: false
-                });
-                console.log('✅ Basic notification displayed');
+                console.log('✅ Local notification displayed');
             }
             
             this.playNotificationSound();
@@ -226,7 +311,9 @@ class NotificationManager {
     }
 
     convertTo12Hour(time24) {
-        const [hours, minutes] = time24.split(':');
+        const timeParts = time24.split(':');
+        const hours = timeParts[0];
+        const minutes = timeParts[1];
         let hour = parseInt(hours);
         const ampm = hour >= 12 ? 'PM' : 'AM';
         hour = hour % 12 || 12;
@@ -270,7 +357,7 @@ class NotificationManager {
         const msToMidnight = night.getTime() - now.getTime();
 
         setTimeout(() => {
-            console.log('🌙 Resetting notified reminders at midnight');
+            console.log('🌙 Resetting at midnight');
             this.notifiedReminders.clear();
             this.saveNotifiedReminders();
             this.scheduleResetAtMidnight();
@@ -281,19 +368,27 @@ class NotificationManager {
         this.notificationHistory = [];
         this.saveNotificationHistory();
     }
+
+    // Allow manual clearing of a specific reminder's notification flag
+    clearReminderFlag(reminderId, date, time) {
+        const reminderKey = `${reminderId}-${date}-${time}`;
+        if (this.notifiedReminders.has(reminderKey)) {
+            this.notifiedReminders.delete(reminderKey);
+            this.saveNotifiedReminders();
+            console.log(`✅ Cleared notification flag for reminder ${reminderId}`);
+        }
+    }
 }
 
 // Global notification manager
 let notificationManager;
 
-// Initialize after DOM and data are ready
 function initNotificationSystem() {
     if (!notificationManager) {
-        notificationManager = new NotificationManager();
-        console.log('✅ Notification system initialized');
+        notificationManager = new FCMNotificationManager();
+        console.log('✅ FCM Notification system initialized');
     }
 }
 
-// Export for use in tasks.js
 window.initNotificationSystem = initNotificationSystem;
 window.notificationManager = notificationManager;
