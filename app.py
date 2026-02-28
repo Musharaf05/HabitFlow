@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from datetime import datetime, timezone
 import uuid
 from sqlalchemy.dialects.postgresql import ARRAY
+import json
+from firebase_admin import credentials, messaging, initialize_app
 
 load_dotenv()
 
@@ -85,8 +87,17 @@ class FCMToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     token = db.Column(db.String(500), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc)
+    )
+    
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc)
+    )
 
 class Habit(db.Model):
     __tablename__ = "habits"
@@ -471,33 +482,16 @@ if __name__ == "__main__":
 
 # FCM Backend Handler for Flask
 # Add this to your app.py
-
-import os
-import json
-from datetime import datetime
-from firebase_admin import credentials, messaging, initialize_app
-
 # Initialize Firebase Admin SDK
 # Download your service account key from Firebase Console
 try:
-    cred = credentials.Certificate('serviceAccountKey.json')
+    cred = credentials.Certificate('./serviceAccountKey.json')
     initialize_app(cred)
     print("✅ Firebase Admin SDK initialized")
 except Exception as e:
     print(f"❌ Firebase Admin SDK initialization failed: {e}")
 
-# Store FCM tokens in database (add to your models)
-class FCMToken(db.Model):
-    __tablename__ = "fcm_tokens"
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)  # If you have user authentication
-    token = db.Column(db.String(500), unique=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
 # Add these routes to your Flask app
-
 @app.route("/save-fcm-token", methods=["POST"])
 def save_fcm_token():
     """Save FCM token from frontend"""
@@ -512,7 +506,7 @@ def save_fcm_token():
         existing = FCMToken.query.filter_by(token=token).first()
         
         if existing:
-            existing.updated_at = datetime.utcnow()
+            existing.updated_at = datetime.timezone.utc()
             print(f"✅ FCM token updated: {token[:20]}...")
         else:
             new_token = FCMToken(token=token)
@@ -729,7 +723,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(
     func=check_and_send_reminders,
     trigger="interval",
-    seconds=10,  # Check every 60 seconds
+    seconds=10,  # Check every 10 seconds
     id='reminder_checker',
     name='Check and send reminder notifications',
     replace_existing=True
@@ -741,17 +735,6 @@ print("✅ APScheduler started - checking reminders every 10 seconds")
 
 # Shut down scheduler when exiting the app
 atexit.register(lambda: scheduler.shutdown())
-
-# Store FCM tokens in database (add to your models)
-class FCMToken(db.Model):
-    __tablename__ = "fcm_tokens"
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)  # If you have user authentication
-    token = db.Column(db.String(500), unique=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
 # Add these routes to your Flask app
 
 @app.route("/save-fcm-token", methods=["POST"])
@@ -768,7 +751,7 @@ def save_fcm_token():
         existing = FCMToken.query.filter_by(token=token).first()
         
         if existing:
-            existing.updated_at = datetime.utcnow()
+            existing.updated_at = datetime.now(datetime.timezone.utc)
         else:
             new_token = FCMToken(token=token)
             db.session.add(new_token)
@@ -929,5 +912,5 @@ def convert_to_12h(time_24):
 from apscheduler.schedulers.background import BackgroundScheduler
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=check_and_send_reminders, trigger="interval", seconds=60)
+scheduler.add_job(func=check_and_send_reminders, trigger="interval", seconds=10)
 scheduler.start()

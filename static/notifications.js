@@ -108,13 +108,14 @@ class FCMNotificationManager {
         try {
             // Initialize Firebase app
             const firebaseConfig = {
-                apiKey: "YOUR_API_KEY",
-                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-                projectId: "YOUR_PROJECT_ID",
-                storageBucket: "YOUR_PROJECT_ID.appspot.com",
-                messagingSenderId: "YOUR_SENDER_ID",
-                appId: "YOUR_APP_ID"
-            };
+                apiKey: "AIzaSyD7AWZX-mcrwSX85Pv6Db23miIH9ruW9mQ",
+                authDomain: "habitflow-af3d3.firebaseapp.com",
+                projectId: "habitflow-af3d3",
+                storageBucket: "habitflow-af3d3.firebasestorage.app",
+                messagingSenderId: "1050299256022",
+                appId: "1:1050299256022:web:8a04c309b83e2fb1f28d77"
+};
+
             
             const app = this.firebase.initializeApp(firebaseConfig);
             this.messaging = this.firebase.getMessaging(app);
@@ -128,7 +129,7 @@ class FCMNotificationManager {
                 
                 // Get FCM token
                 const token = await this.firebase.getToken(this.messaging, {
-                    vapidKey: 'YOUR_VAPID_KEY'
+                    vapidKey: 'BOPIjv6JdU6VBLYQOmkQIJmgV6Lue885XBbq0dWKbHlasIGvpXO92XqCMX1cSe5CTyb_gIyczifkd7eOBHtXdpI'
                 });
                 
                 if (token) {
