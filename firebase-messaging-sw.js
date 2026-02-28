@@ -1,4 +1,6 @@
 // Firebase Cloud Messaging Service Worker
+// This file MUST be at the root of your domain
+
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
@@ -9,7 +11,8 @@ firebase.initializeApp({
     projectId: "habitflow-af3d3",
     storageBucket: "habitflow-af3d3.firebasestorage.app",
     messagingSenderId: "1050299256022",
-    appId: "1:1050299256022:web:8a04c309b83e2fb1f28d77"
+    appId: "1:1050299256022:web:8a04c309b83e2fb1f28d77",
+    measurementId: "G-PN9XJC5EB4"
 });
 
 const messaging = firebase.messaging();
@@ -18,40 +21,39 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('📩 Background message received:', payload);
     
-    const notificationTitle = payload.notification.title;
+    const notificationTitle = payload.notification?.title || 'HabitFlow Reminder';
     const notificationOptions = {
-        body: payload.notification.body,
+        body: payload.notification?.body || '',
         icon: '/static/checklist_16688556.png',
         badge: '/static/checklist_16688556.png',
         vibrate: [200, 100, 200],
-        data: payload.data,
         requireInteraction: true,
-        actions: [
-            { action: 'open', title: 'Open HabitFlow' },
-            { action: 'dismiss', title: 'Dismiss' }
-        ]
+        data: payload.data
     };
     
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
-    console.log('Notification clicked:', event.action);
+    console.log('🖱️ Notification clicked');
     event.notification.close();
     
-    if (event.action === 'open' || !event.action) {
-        event.waitUntil(
-            clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((clientList) => {
+                // Focus existing window if open
                 for (let client of clientList) {
                     if ('focus' in client) {
                         return client.focus();
                     }
                 }
+                // Open new window if none exists
                 if (clients.openWindow) {
                     return clients.openWindow('/');
                 }
             })
-        );
-    }
+    );
 });
+
+console.log('✅ Firebase messaging service worker loaded');

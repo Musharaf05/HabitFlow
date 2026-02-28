@@ -108,13 +108,14 @@ class FCMNotificationManager {
         try {
             // Initialize Firebase app
             const firebaseConfig = {
-                apiKey: "AIzaSyD7AWZX-mcrwSX85Pv6Db23miIH9ruW9mQ",
-                authDomain: "habitflow-af3d3.firebaseapp.com",
-                projectId: "habitflow-af3d3",
-                storageBucket: "habitflow-af3d3.firebasestorage.app",
-                messagingSenderId: "1050299256022",
-                appId: "1:1050299256022:web:8a04c309b83e2fb1f28d77"
-};
+                    apiKey: "AIzaSyD7AWZX-mcrwSX85Pv6Db23miIH9ruW9mQ",
+                    authDomain: "habitflow-af3d3.firebaseapp.com",
+                    projectId: "habitflow-af3d3",
+                    storageBucket: "habitflow-af3d3.firebasestorage.app",
+                    messagingSenderId: "1050299256022",
+                    appId: "1:1050299256022:web:8a04c309b83e2fb1f28d77",
+                    measurementId: "G-PN9XJC5EB4"
+            };
 
             
             const app = this.firebase.initializeApp(firebaseConfig);
