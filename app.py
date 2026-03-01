@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 import uuid
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 import json
 from firebase_admin import credentials, messaging, initialize_app
 
@@ -86,14 +86,12 @@ class FCMToken(db.Model):
     __tablename__ = "fcm_tokens"
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)
+    user_id = db.Column(UUID(as_uuid=True))  # ← UUID type!
     token = db.Column(db.String(500), unique=True, nullable=False)
-    
     created_at = db.Column(
         db.DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc)
     )
-    
     updated_at = db.Column(
         db.DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -478,10 +476,8 @@ def serve_firebase_sw():
     return send_from_directory(root_dir, 'firebase-messaging-sw.js')
 
 # ============================================================================
-# FCM BACKEND CODE - PASTE THIS ONCE AT THE END OF app.py
-# ============================================================================
-# Paste this AFTER: if __name__ == "__main__": app.run(debug=True)
-# ============================================================================
+# FCM BACKEND CODE - FIXED WITH USER-SPECIFIC NOTIFICATIONS
+
 # Initialize Firebase Admin SDK
 try:
     cred = credentials.Certificate('./serviceAccountKey.json')
@@ -490,16 +486,14 @@ try:
 except Exception as e:
     print(f"❌ Firebase Admin SDK initialization failed: {e}")
 
-# NOTE: FCMToken model is defined in models section at TOP of app.py
-# Do NOT add the FCMToken class here!
-
 # ============================================================================
-# FCM ROUTES (3 routes)
+# FCM ROUTES (User-specific)
 # ============================================================================
 
 @app.route("/save-fcm-token", methods=["POST"])
+@login_required
 def save_fcm_token():
-    """Save FCM token from frontend"""
+    """Save FCM token with user_id"""
     data = request.get_json()
     token = data.get("token")
     
@@ -507,15 +501,22 @@ def save_fcm_token():
         return jsonify({"error": "Token required"}), 400
     
     try:
+        # Check if token already exists for this user
         existing = FCMToken.query.filter_by(token=token).first()
         
         if existing:
+            # Update user_id if token exists
+            existing.user_id = current_user.user_id
             existing.updated_at = datetime.now(timezone.utc)
-            print(f"✅ FCM token updated: {token[:20]}...")
+            print(f"✅ FCM token updated for user {current_user.username}")
         else:
-            new_token = FCMToken(token=token)
+            # Create new token with user_id
+            new_token = FCMToken(
+                user_id=current_user.user_id,
+                token=token
+            )
             db.session.add(new_token)
-            print(f"✅ New FCM token saved: {token[:20]}...")
+            print(f"✅ New FCM token saved for user {current_user.username}")
         
         db.session.commit()
         return jsonify({"message": "Token saved successfully"}), 200
@@ -525,25 +526,52 @@ def save_fcm_token():
         return jsonify({"error": "Failed to save token"}), 500
 
 
-@app.route("/send-fcm-notification", methods=["POST"])
-def send_fcm_notification():
-    """Send FCM notification to all registered devices"""
-    data = request.get_json()
-    title = data.get("title", "HabitFlow Reminder")
-    body = data.get("body")
-    reminder_id = data.get("reminder_id")
-    
-    if not body:
-        return jsonify({"error": "Body required"}), 400
+@app.route("/test-fcm", methods=["POST"])
+@login_required
+def test_fcm():
+    """Test FCM notifications for current user"""
+    data = request.get_json() if request.is_json else {}
+    title = data.get("title", "🧪 FCM Test")
+    body = data.get("body", "If you see this, FCM is working!")
     
     try:
-        tokens = FCMToken.query.all()
+        # Send notification only to current user
+        result = send_fcm_notification_to_user(
+            user_id=current_user.user_id,
+            title=title,
+            body=body,
+            reminder_id=None
+        )
+        
+        if result:
+            return jsonify({
+                "message": "Test notification sent",
+                "success_count": result.success_count if result else 0,
+                "failure_count": result.failure_count if result else 0
+            }), 200
+        else:
+            return jsonify({"message": "No tokens found for user"}), 200
+            
+    except Exception as e:
+        print(f"❌ Test FCM error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ============================================================================
+# HELPER FUNCTIONS (User-specific)
+# ============================================================================
+
+def send_fcm_notification_to_user(user_id, title, body, reminder_id):
+    """Send FCM notification to a specific user's devices"""
+    try:
+        # Get all tokens for this specific user
+        tokens = FCMToken.query.filter_by(user_id=user_id).all()
         
         if not tokens:
-            return jsonify({"message": "No tokens to send to"}), 200
+            print(f"⚠️ No FCM tokens for user {user_id}")
+            return None
         
         token_strings = [t.token for t in tokens]
-        print(f"📤 Sending to {len(token_strings)} devices")
+        print(f"📤 Sending to {len(token_strings)} device(s) for user {user_id}")
         
         message = messaging.MulticastMessage(
             notification=messaging.Notification(title=title, body=body),
@@ -559,10 +587,11 @@ def send_fcm_notification():
             )
         )
         
+        # FIXED: Use send_each_for_multicast instead of send_multicast
         response = messaging.send_each_for_multicast(message)
         print(f"✅ Sent: {response.success_count} | ❌ Failed: {response.failure_count}")
         
-        # Remove invalid tokens
+        # Clean up failed tokens
         if response.failure_count > 0:
             failed_tokens = []
             for idx, resp in enumerate(response.responses):
@@ -572,166 +601,66 @@ def send_fcm_notification():
             if failed_tokens:
                 FCMToken.query.filter(FCMToken.token.in_(failed_tokens)).delete(synchronize_session=False)
                 db.session.commit()
-                print(f"🗑️ Removed {len(failed_tokens)} invalid tokens")
+                print(f"🗑️ Removed {len(failed_tokens)} invalid token(s)")
         
-        return jsonify({
-            "message": "Notification sent",
-            "success_count": response.success_count,
-            "failure_count": response.failure_count
-        }), 200
+        return response
         
     except Exception as e:
         print(f"❌ Error sending FCM notification: {e}")
-        return jsonify({"error": str(e)}), 500
+        return None
 
-
-@app.route("/test-fcm", methods=["POST"])
-def test_fcm():
-    """Test FCM notifications"""
-    data = request.get_json()
-    title = data.get("title", "🧪 FCM Test")
-    body = data.get("body", "If you see this, FCM is working!")
-    
-    try:
-        result = send_fcm_notification_internal(title, body, None)
-        return jsonify({
-            "message": "Test notification sent",
-            "success_count": result.success_count if result else 0,
-            "failure_count": result.failure_count if result else 0
-        }), 200
-    except Exception as e:
-        print(f"❌ Test FCM error: {e}")
-        return jsonify({"error": str(e)}), 500
-
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
 
 def check_and_send_reminders():
-    """Background job to check reminders every 10 seconds"""
+    """Background job - check ALL users' reminders"""
     with app.app_context():
         try:
             now = datetime.now()
-            today = now.date()
-            current_time = now.time().replace(second=0, microsecond=0)
+            current_date = now.date()
+            current_time = now.strftime('%H:%M')
 
-            print(f"🕐 Checking reminders at {current_time} on {today}")
+            print(f"🕐 Checking reminders at {current_time} on {current_date}")
 
-            reminders = Reminder.query.filter(
-                Reminder.remind_time.isnot(None)
+            reminders = Reminder.query.filter_by(
+                remind_date=current_date,
+                sent=False
             ).all()
 
+            if not reminders:
+                return
+
             for reminder in reminders:
-                # 🚫 Prevent duplicate sends
-                if reminder.sent:
+                if reminder.remind_time is None:
                     continue
 
-                # ⏰ Match time (minute-level precision)
-                reminder_time = reminder.remind_time.replace(second=0, microsecond=0)
-                if reminder_time != current_time:
-                    continue
+                reminder_time = reminder.remind_time.strftime('%H:%M')
 
-                # 🔠 Normalize repeat frequency (frontend may send ALL CAPS)
-                freq = (reminder.repeat_frequency or "").lower()
-
-                should_send = False
-
-                # 🚫 No repeat
-                if freq in ("", "no-repeat"):
-                    if reminder.remind_date == today:
-                        should_send = True
-
-                # 🔁 Daily
-                elif freq == "daily":
-                    should_send = True
-
-                # 🔁 Bi-weekly (every 14 days from start date)
-                elif freq == "bi-weekly":
-                    delta_days = (today - reminder.remind_date).days
-                    if delta_days >= 0 and delta_days % 14 == 0:
-                        should_send = True
-
-                # 🔁 Monthly
-                elif freq == "monthly":
-                    if reminder.remind_date.day == today.day:
-                        should_send = True
-
-                if not should_send:
-                    continue
-
-                try:
-                    time_12h = convert_to_12h(reminder.remind_time)
-
-                    send_fcm_notification_internal(
+                if reminder_time == current_time:
+                    response = send_fcm_notification_to_user(
+                        user_id=reminder.user_id,
                         title="🔔 HabitFlow Reminder",
-                        body=f"{reminder.reminder}\nScheduled for {time_12h}",
+                        body=reminder.reminder,
                         reminder_id=reminder.reminder_id
                     )
 
-                    # ✅ Mark as sent to avoid duplicates
                     reminder.sent = True
                     db.session.commit()
 
-                    print(f"✅ Sent notification for: {reminder.reminder}")
-
-                except Exception as e:
-                    print(f"❌ Error sending notification: {e}")
-
-            # 🔄 Reset sent flag at midnight for repeating reminders
-            if current_time.hour == 0 and current_time.minute == 0:
-                Reminder.query.filter(
-                    Reminder.repeat_frequency.isnot(None)
-                ).update({Reminder.sent: False})
-                db.session.commit()
+                    if response:
+                        print(f"✅ Notification sent for reminder {reminder.reminder_id}")
+                    else:
+                        print(f"⚠️ No FCM tokens for user {reminder.user_id}")
 
         except Exception as e:
             print(f"❌ Error in check_and_send_reminders: {e}")
 
-def send_fcm_notification_internal(title, body, reminder_id):
-    """Internal function to send FCM notifications"""
-    tokens = FCMToken.query.all()
-    
-    if not tokens:
-        print("⚠️ No FCM tokens registered")
-        return None
-    
-    token_strings = [t.token for t in tokens]
-    
-    message = messaging.MulticastMessage(
-        notification=messaging.Notification(title=title, body=body),
-        data={'reminderId': str(reminder_id) if reminder_id else ''},
-        tokens=token_strings,
-        webpush=messaging.WebpushConfig(
-            notification=messaging.WebpushNotification(
-                icon='/static/checklist_16688556.png',
-                badge='/static/checklist_16688556.png',
-                vibrate=[200, 100, 200],
-                require_interaction=True
-            )
-        )
-    )
-    
-    response = messaging.send_each_for_multicast(message)
-    
-    # Clean up failed tokens
-    if response.failure_count > 0:
-        failed_tokens = []
-        for idx, resp in enumerate(response.responses):
-            if not resp.success:
-                failed_tokens.append(token_strings[idx])
-        
-        if failed_tokens:
-            FCMToken.query.filter(FCMToken.token.in_(failed_tokens)).delete(synchronize_session=False)
-            db.session.commit()
-    
-    return response
-
 def convert_to_12h(time_24):
- 
-    if time_24 is None:
-        return ""
-
-    return time_24.strftime("%I:%M %p")
+    """Convert 24-hour time to 12-hour format"""
+    parts = time_24.split(':')
+    hour = int(parts[0])
+    minute = parts[1]
+    ampm = 'PM' if hour >= 12 else 'AM'
+    hour = hour % 12 or 12
+    return f"{hour}:{minute} {ampm}"
 
 
 # ============================================================================
@@ -756,11 +685,6 @@ print("✅ APScheduler started - checking reminders every 10 seconds")
 
 # Shutdown scheduler when app stops
 atexit.register(lambda: scheduler.shutdown())
-
-# ============================================================================
-# END OF FCM BACKEND CODE
-# ============================================================================
-
 
 # ============== RUN ==============
 if __name__ == "__main__":

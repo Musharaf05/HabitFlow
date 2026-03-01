@@ -1,4 +1,4 @@
-// FCM-POWERED NOTIFICATION SYSTEM WITH RESCHEDULING FIX
+// FCM-POWERED NOTIFICATION SYSTEM - FIXED VERSION (No Duplicates!)
 class FCMNotificationManager {
     constructor() {
         this.checkInterval = null;
@@ -16,7 +16,7 @@ class FCMNotificationManager {
             if (stored) {
                 const data = JSON.parse(stored);
                 if (data.date === today) {
-                    return new Map(data.reminders); // Changed to Map for better tracking
+                    return new Map(data.reminders);
                 }
             }
         } catch (error) {
@@ -30,7 +30,7 @@ class FCMNotificationManager {
             const today = new Date().toISOString().split('T')[0];
             const data = {
                 date: today,
-                reminders: Array.from(this.notifiedReminders.entries()) // Convert Map to array
+                reminders: Array.from(this.notifiedReminders.entries())
             };
             localStorage.setItem('notifiedReminders', JSON.stringify(data));
         } catch (error) {
@@ -87,7 +87,6 @@ class FCMNotificationManager {
 
     async loadFirebase() {
         try {
-            // Dynamically import Firebase
             const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
             const { getMessaging, getToken, onMessage } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js');
             
@@ -106,29 +105,25 @@ class FCMNotificationManager {
         }
 
         try {
-            // Initialize Firebase app
             const firebaseConfig = {
-                    apiKey: "AIzaSyD7AWZX-mcrwSX85Pv6Db23miIH9ruW9mQ",
-                    authDomain: "habitflow-af3d3.firebaseapp.com",
-                    projectId: "habitflow-af3d3",
-                    storageBucket: "habitflow-af3d3.firebasestorage.app",
-                    messagingSenderId: "1050299256022",
-                    appId: "1:1050299256022:web:8a04c309b83e2fb1f28d77",
-                    measurementId: "G-PN9XJC5EB4"
+                apiKey: "AIzaSyD7AWZX-mcrwSX85Pv6Db23miIH9ruW9mQ",
+                authDomain: "habitflow-af3d3.firebaseapp.com",
+                projectId: "habitflow-af3d3",
+                storageBucket: "habitflow-af3d3.firebasestorage.app",
+                messagingSenderId: "1050299256022",
+                appId: "1:1050299256022:web:8a04c309b83e2fb1f28d77",
+                measurementId: "G-PN9XJC5EB4"
             };
 
-            
             const app = this.firebase.initializeApp(firebaseConfig);
             this.messaging = this.firebase.getMessaging(app);
             
-            // Request permission and get token
             const permission = await Notification.requestPermission();
             
             if (permission === 'granted') {
                 this.permissionGranted = true;
                 console.log('✅ Notification permission granted');
                 
-                // Get FCM token
                 const token = await this.firebase.getToken(this.messaging, {
                     vapidKey: 'BOPIjv6JdU6VBLYQOmkQIJmgV6Lue885XBbq0dWKbHlasIGvpXO92XqCMX1cSe5CTyb_gIyczifkd7eOBHtXdpI'
                 });
@@ -137,18 +132,19 @@ class FCMNotificationManager {
                     this.fcmToken = token;
                     console.log('✅ FCM Token obtained');
                     
-                    // Save token to backend
                     await this.saveFCMToken(token);
                     
-                    // Listen for foreground messages
+                    // FIXED: Don't show notification in foreground - backend already sends it!
                     this.firebase.onMessage(this.messaging, (payload) => {
-                        this.handleForegroundMessage(payload);
+                        console.log('📩 Foreground message received:', payload);
+                        // Backend already sent the notification via FCM
+                        // Just log it, don't create duplicate notification
+                        this.playNotificationSound();
                     });
                 }
             }
         } catch (error) {
             console.error('❌ FCM initialization error:', error);
-            // Fallback to basic notifications
             this.permissionGranted = await this.requestBasicPermission();
         }
     }
@@ -184,23 +180,6 @@ class FCMNotificationManager {
         }
     }
 
-    handleForegroundMessage(payload) {
-        console.log('📩 Foreground message:', payload);
-        
-        const notificationTitle = payload.notification.title;
-        const notificationOptions = {
-            body: payload.notification.body,
-            icon: '/static/checklist_16688556.png',
-            badge: '/static/checklist_16688556.png',
-            vibrate: [200, 100, 200],
-            tag: payload.data?.reminderId || 'habitflow-reminder',
-            requireInteraction: true
-        };
-        
-        new Notification(notificationTitle, notificationOptions);
-        this.playNotificationSound();
-    }
-
     startChecking() {
         console.log('🕐 Starting reminder checks every 10 seconds...');
         this.checkReminders();
@@ -225,8 +204,6 @@ class FCMNotificationManager {
         const now = new Date();
         const currentDate = now.toISOString().split('T')[0];
         const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        
-        console.log(`🕐 Checking at ${currentTime} on ${currentDate} - ${data.reminders.length} reminders`);
 
         for (const reminder of data.reminders) {
             if (!reminder.date || !reminder.time || !reminder.id) {
@@ -242,68 +219,27 @@ class FCMNotificationManager {
                 continue;
             }
 
-            // FIXED: Track by ID-Date-Time to allow rescheduling
             const reminderKey = `${reminder.id}-${currentDate}-${reminderTime}`;
             const lastNotified = this.notifiedReminders.get(reminderKey);
             
-            // Check if we already notified for this exact time
             if (lastNotified && lastNotified === reminderTime) {
-                console.log(`⏭️ Already notified for ${reminder.text} at ${reminderTime}`);
                 continue;
             }
 
             const timeMatch = currentTime === reminderTime;
             
             if (timeMatch) {
-                console.log(`🔔 ✓✓✓ TRIGGERING: "${reminder.text}"`);
-                await this.triggerNotification(reminder);
+                console.log(`🔔 Triggering reminder: "${reminder.text}"`);
                 
-                // Store the time we notified at
+                // FIXED: Backend sends notification, we just track it here
+                // No local notification display to avoid duplicates
                 this.notifiedReminders.set(reminderKey, reminderTime);
                 this.saveNotifiedReminders();
                 this.addToHistory(reminder);
-                console.log(`✅ Notification sent and tracked`);
+                
+                // Play sound for immediate feedback
+                this.playNotificationSound();
             }
-        }
-    }
-
-    async triggerNotification(reminder) {
-        const time12 = this.convertTo12Hour(reminder.time);
-        const title = "🔔 HabitFlow Reminder";
-        const body = `${reminder.text}\nScheduled for ${time12}`;
-
-        try {
-            // Try FCM backend notification first
-            if (this.fcmToken) {
-                await fetch('/send-fcm-notification', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title,
-                        body,
-                        reminder_id: reminder.id
-                    })
-                });
-                console.log('✅ FCM notification sent via backend');
-            }
-            
-            // Also show local notification for immediate feedback
-            if (this.permissionGranted) {
-                new Notification(title, {
-                    body: body,
-                    icon: '/static/checklist_16688556.png',
-                    badge: '/static/checklist_16688556.png',
-                    vibrate: [200, 100, 200],
-                    tag: `reminder-${reminder.id}`,
-                    requireInteraction: true
-                });
-                console.log('✅ Local notification displayed');
-            }
-            
-            this.playNotificationSound();
-            
-        } catch (error) {
-            console.error('❌ Notification error:', error);
         }
     }
 
@@ -371,7 +307,6 @@ class FCMNotificationManager {
         this.saveNotificationHistory();
     }
 
-    // Allow manual clearing of a specific reminder's notification flag
     clearReminderFlag(reminderId, date, time) {
         const reminderKey = `${reminderId}-${date}-${time}`;
         if (this.notifiedReminders.has(reminderKey)) {
