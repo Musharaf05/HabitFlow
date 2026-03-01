@@ -711,7 +711,7 @@ def send_fcm_notification_internal(title, body, reminder_id):
         )
     )
     
-    response = messaging.send_each_for_multicast()(message)
+    response = messaging.send_each_for_multicast(message)
     
     # Clean up failed tokens
     if response.failure_count > 0:
@@ -764,4 +764,4 @@ atexit.register(lambda: scheduler.shutdown())
 
 # ============== RUN ==============
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
